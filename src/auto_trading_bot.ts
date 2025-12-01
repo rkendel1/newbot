@@ -98,14 +98,16 @@ class AutoTradingBot {
         console.log('\n💰 Checking wallet balances...');
         const balances = await this.checkAndDisplayBalances();
         
-        const check = this.balanceChecker.checkSufficientBalance(balances, this.tradeAmount, 0.05);
-        console.log('\n📊 Balance Check:');
+        // Require minimum $500 USDC for trading
+        const minimumBalance = 500.0;
+        const check = this.balanceChecker.checkSufficientBalance(balances, minimumBalance, 0.05);
+        console.log('\n📊 Balance Check (Minimum $500 required for trading):');
         check.warnings.forEach(w => console.log(`  ${w}`));
         
         if (!check.sufficient) {
             console.log('\n❌ Insufficient funds to start trading!');
             console.log('Please fund your wallet:');
-            console.log(`  - USDC: At least $${this.tradeAmount.toFixed(2)}`);
+            console.log(`  - USDC: At least $${minimumBalance.toFixed(2)}`);
             console.log(`  - MATIC: At least 0.05 for gas fees`);
             throw new Error('Insufficient balance');
         }
@@ -118,13 +120,17 @@ class AutoTradingBot {
         await this.connectSoftwareWebSocket();
         await this.connectPolymarketWebSocket();
         
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log('⏳ Waiting for initial price data...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
         
         this.isRunning = true;
         this.startMonitoring();
         
         console.log('\n✅ Bot started successfully!');
-        console.log('Monitoring for trade opportunities...\n');
+        console.log('🚀 Starting automatic trading immediately...\n');
+        
+        // Immediately start checking for trade opportunities
+        this.startImmediateTrading();
     }
 
     private async checkAndDisplayBalances(): Promise<BalanceInfo> {
@@ -314,6 +320,37 @@ class AutoTradingBot {
         }
     }
 
+    private startImmediateTrading() {
+        // Start actively trading immediately
+        const immediateTradingLoop = async () => {
+            if (!this.isRunning) return;
+            
+            try {
+                const opportunity = await this.checkTradeOpportunity();
+                if (opportunity) {
+                    console.log('\n' + '='.repeat(60));
+                    console.log('🎯 TRADE OPPORTUNITY DETECTED!');
+                    console.log('='.repeat(60));
+                    console.log(`Token: ${opportunity.tokenType}`);
+                    console.log(`Software Price: $${opportunity.softwarePrice.toFixed(4)}`);
+                    console.log(`Polymarket Price: $${opportunity.polymarketPrice.toFixed(4)}`);
+                    console.log(`Difference: $${opportunity.difference.toFixed(4)} (threshold: $${this.priceThreshold.toFixed(4)})`);
+                    console.log('='.repeat(60));
+                    
+                    await this.executeTrade(opportunity);
+                }
+            } catch (error: any) {
+                console.error('Error in immediate trading loop:', error.message);
+            }
+            
+            // Continue checking every second
+            setTimeout(immediateTradingLoop, 1000);
+        };
+        
+        // Start the loop immediately
+        immediateTradingLoop();
+    }
+
     private startMonitoring() {
         let lastLogTime = 0;
         const logInterval = 30000;
@@ -326,11 +363,14 @@ class AutoTradingBot {
             if (now - this.lastBalanceCheck >= this.balanceCheckInterval) {
                 console.log('\n💰 Periodic balance check...');
                 const balances = await this.checkAndDisplayBalances();
-                const check = this.balanceChecker.checkSufficientBalance(balances, this.tradeAmount, 0.02);
+                // Check against minimum $500 requirement
+                const minimumBalance = 500.0;
+                const check = this.balanceChecker.checkSufficientBalance(balances, minimumBalance, 0.02);
                 
                 if (!check.sufficient) {
-                    console.log('⚠️  WARNING: Low balance detected!');
+                    console.log('⚠️  WARNING: Low balance detected! Trading requires at least $500 USDC');
                     check.warnings.forEach(w => console.log(`  ${w}`));
+                    console.log('⚠️  Bot will continue monitoring but may not execute trades until balance is sufficient.');
                 }
                 
                 this.lastBalanceCheck = now;
@@ -346,29 +386,22 @@ class AutoTradingBot {
                 console.log(`[Monitor] Software: UP=$${upSoft} DOWN=$${downSoft} | Market: UP=$${upMarket} DOWN=$${downMarket}`);
                 lastLogTime = now;
             }
-
-            const opportunity = this.checkTradeOpportunity();
-            if (opportunity) {
-                console.log('\n' + '='.repeat(60));
-                console.log('🎯 TRADE OPPORTUNITY DETECTED!');
-                console.log('='.repeat(60));
-                console.log(`Token: ${opportunity.tokenType}`);
-                console.log(`Software Price: $${opportunity.softwarePrice.toFixed(4)}`);
-                console.log(`Polymarket Price: $${opportunity.polymarketPrice.toFixed(4)}`);
-                console.log(`Difference: $${opportunity.difference.toFixed(4)} (threshold: $${this.priceThreshold.toFixed(4)})`);
-                console.log('='.repeat(60));
-                
-                await this.executeTrade(opportunity);
-            }
         }, 1000);
     }
 
-    private checkTradeOpportunity(): TradeOpportunity | null {
+    private async checkTradeOpportunity(): Promise<TradeOpportunity | null> {
         const currentTime = Date.now();
         const remainingCooldown = this.tradeCooldown - (currentTime - this.lastTradeTime);
 
         if (remainingCooldown > 0) {
             return null;
+        }
+
+        // Check balance before trading - require minimum $500
+        const balances = await this.balanceChecker.checkBalances(this.wallet);
+        const minimumBalance = 500.0;
+        if (balances.usdc < minimumBalance) {
+            return null; // Skip trading if balance is below minimum
         }
 
         for (const tokenType of ['UP', 'DOWN']) {

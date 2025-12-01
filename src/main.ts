@@ -151,14 +151,14 @@ class PolymarketBot {
         const balances = await this.balanceChecker.checkBalances(this.wallet);
         this.balanceChecker.displayBalances(balances);
         
-        const check = this.balanceChecker.checkSufficientBalance(balances, 5.0, 0.05);
+        const check = this.balanceChecker.checkSufficientBalance(balances, 500.0, 0.05);
         console.log('\n📊 Balance Check (for trading):');
         check.warnings.forEach(w => console.log(`  ${w}`));
         
         if (!check.sufficient) {
             console.log('\n⚠️  Insufficient funds for trading');
             console.log('Please fund your wallet:');
-            console.log(`  - USDC: At least $5.00`);
+            console.log(`  - USDC: At least $500.00`);
             console.log(`  - MATIC: At least 0.05 for gas fees`);
         }
     }

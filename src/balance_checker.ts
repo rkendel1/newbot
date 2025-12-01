@@ -58,7 +58,7 @@ export class BalanceChecker {
         console.log('='.repeat(60));
     }
 
-    checkSufficientBalance(balances: BalanceInfo, requiredUsdc: number = 5.0, requiredMatic: number = 0.05): { 
+    checkSufficientBalance(balances: BalanceInfo, requiredUsdc: number = 500.0, requiredMatic: number = 0.05): { 
         sufficient: boolean; 
         warnings: string[] 
     } {

@@ -27,7 +27,7 @@ async function main() {
         console.log('\n📊 Trading Readiness Check:');
         console.log('='.repeat(60));
         
-        const tradeAmount = parseFloat(process.env.DEFAULT_TRADE_AMOUNT || '5.0');
+        const tradeAmount = parseFloat(process.env.DEFAULT_TRADE_AMOUNT || '500.0');
         const check = checker.checkSufficientBalance(balances, tradeAmount, 0.05);
         
         check.warnings.forEach(w => console.log(`  ${w}`));
