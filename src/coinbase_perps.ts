@@ -17,7 +17,6 @@ import * as crypto from 'crypto';
 export interface CoinbasePerpsConfig {
   apiKey: string;
   apiSecret: string;
-  passphrase: string;
   baseUrl?: string;
   timeout?: number;
 }
@@ -73,7 +72,6 @@ export class CoinbasePerps {
   private baseUrl: string;
   private apiKey: string;
   private apiSecret: string;
-  private passphrase: string;
   private timeout: number;
 
   constructor(config: CoinbasePerpsConfig) {
@@ -81,7 +79,6 @@ export class CoinbasePerps {
     this.baseUrl = this.baseUrl.replace(/\/$/, '');
     this.apiKey = config.apiKey;
     this.apiSecret = config.apiSecret;
-    this.passphrase = config.passphrase;
     this.timeout = config.timeout || 10000;
 
     this.client = axios.create({
@@ -122,7 +119,6 @@ export class CoinbasePerps {
       'CB-ACCESS-KEY': this.apiKey,
       'CB-ACCESS-SIGN': this.sign(timestamp, method, path, body),
       'CB-ACCESS-TIMESTAMP': timestamp,
-      'CB-ACCESS-PASSPHRASE': this.passphrase,
       'Content-Type': 'application/json',
     };
   }
