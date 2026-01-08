@@ -1,8 +1,3 @@
-# Funding Rate Arbitrage Bot
-# Donation 0xCBAcAf95cde23F6050e7EB05337Fad542B1597bE
-
-# [telegram: blategold](https://t.me/blategold) lets connect.
-A professional TypeScript-based **funding rate arbitrage bot** for executing delta-neutral trades between Hyperliquid (DEX) and Binance (CEX) perpetual futures.
 
 ## Features
 

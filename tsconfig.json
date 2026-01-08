@@ -1,28 +1,24 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
     "lib": ["ES2020"],
-    "outDir": "./dist",
+
+    "module": "commonjs",
+    "moduleResolution": "node",
+
     "rootDir": "./src",
+    "outDir": "./dist",
+
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
+
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
-    "typeRoots": ["./node_modules/@types", "./src"]
+    "sourceMap": true
   },
-  "include": [
-    "src/auto_trading_bot.ts",
-    "src/funding_rate_monitor.ts",
-    "src/config.ts",
-    "src/test_funding_arb.ts",
-    "src/@binance-connector.d.ts"
-  ],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
-
