@@ -94,7 +94,8 @@ export class FundingRateMonitor extends EventEmitter {
     });
 
     // Subscribe to ticker updates which include funding rate
-    this.bybitWS.subscribe([`tickers.${this.symbol}`]);
+    // Use subscribeV5() for v5 websocket topics with category parameter
+    this.bybitWS.subscribeV5([`tickers.${this.symbol}`], 'linear');
   }
 
   private subscribeBinance() {
