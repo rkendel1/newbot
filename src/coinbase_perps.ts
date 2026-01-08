@@ -78,7 +78,7 @@ export class CoinbasePerps {
   private timeout: number;
 
   constructor(config: CoinbasePerpsConfig) {
-    this.baseUrl = process.env.COINBASE_BASE_URL || config.baseUrl || 'https://api-public.international.coinbase.com';
+    this.baseUrl = process.env.COINBASE_BASE_URL || config.baseUrl || 'https://api.international.coinbase.com';
     this.baseUrl = this.baseUrl.replace(/\/$/, '');
     this.apiKey = config.apiKey;
     this.apiSecret = config.apiSecret;

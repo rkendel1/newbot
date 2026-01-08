@@ -56,7 +56,7 @@ export class FundingRateMonitor extends EventEmitter {
     this.coinbaseSymbol = this.convertToCoinbaseSymbol(symbol);
 
     // Load Apex credentials from environment
-    const apexBaseUrl = process.env.APEX_BASE_URL || 'https://api.omni.apex.exchange';
+    const apexBaseUrl = process.env.APEX_BASE_URL || 'https://omni.apex.exchange';
     const starkPrivateKey = process.env.APEX_STARK_PRIVATE_KEY;
     const starkPublicKey = process.env.APEX_STARK_PUBLIC_KEY;
     const accountId = process.env.APEX_ACCOUNT_ID;
@@ -156,8 +156,8 @@ export class FundingRateMonitor extends EventEmitter {
   private convertToApexSymbol(binanceSymbol: string): string {
     // Mapping table for known pairs
     const symbolMap: Record<string, string> = {
-      'BTCUSDT': 'BTC-USDC',
-      'ETHUSDT': 'ETH-USDC',
+      'BTCUSDT': 'BTC-USDT',
+      'ETHUSDT': 'ETH-USDT',
       'SOLUSDT': 'SOL-USDC',
       'AVAXUSDT': 'AVAX-USDC',
       'BNBUSDT': 'BNB-USDC',

@@ -207,57 +207,57 @@ export class ApexExchange {
     return this.get<ApexMarket[]>('/markets');
   }
 
-  /**
-   * Get data for a single market
-   * @param symbol - Market symbol (e.g., 'ETH-USDC')
-   */
-  async getMarket(symbol: string): Promise<ApexMarket> {
-    const markets = await this.getMarkets();
-    const market = markets.find(m => m.symbol === symbol);
-    
-    if (!market) {
-      throw new ApexAPIError(`Market not found: ${symbol}`);
+    /**
+     * Get data for a single market
+     * @param symbol - Market symbol (e.g., 'ETH-USDC')
+     */
+    async getMarket(symbol: string): Promise<ApexMarket> {
+      const markets = await this.getMarkets();
+      const market = markets.find(m => m.symbol === symbol);
+      
+      if (!market) {
+        throw new ApexAPIError(`Market not found: ${symbol}`);
+      }
+      
+      return market;
     }
-    
-    return market;
-  }
 
-  /**
+    /**
+     * Get the current funding rate for a perpetual market
+     * 
+     * NOTE: The Apex API endpoint for funding rates may vary. This method attempts
+     * multiple possible endpoints and field names to retrieve the funding rate.
+     * 
+     * Common Apex API endpoints for funding rates:
+     * - /v1/funding (with symbol parameter)
+     * - /v1/funding-rate (with symbol parameter)
+     * - /v1/perpetual-markets/{symbol}/funding-rate
+     * 
+     * @param symbol - Market symbol (e.g., 'ETH-USDC', 'BTC-USDC')
+     * @returns Funding rate as a decimal (e.g., 0.0001 = 0.01%)
+     */
+    /**
    * Get the current funding rate for a perpetual market
    * 
-   * NOTE: The Apex API endpoint for funding rates may vary. This method attempts
-   * multiple possible endpoints and field names to retrieve the funding rate.
+   * Apex Omni uses /api/v3/history-funding endpoint for funding rates.
+   * The endpoint returns historical funding rates, we take the most recent one.
    * 
-   * Common Apex API endpoints for funding rates:
-   * - /v1/funding (with symbol parameter)
-   * - /v1/funding-rate (with symbol parameter)
-   * - /v1/perpetual-markets/{symbol}/funding-rate
-   * 
-   * @param symbol - Market symbol (e.g., 'ETH-USDC', 'BTC-USDC')
+   * @param symbol - Market symbol (e.g., 'BTC-USDC', 'ETH-USDC')
    * @returns Funding rate as a decimal (e.g., 0.0001 = 0.01%)
    */
   async getFundingRate(symbol: string): Promise<number> {
-    // Try multiple possible endpoints
-    const endpoints = [
-      { path: '/funding-rate', params: { symbol } },
-      { path: '/funding', params: { symbol } },
-      { path: `/perpetual-markets/${symbol}/funding-rate`, params: {} },
-      { path: '/ticker', params: { symbol } },  // Sometimes funding rate is in ticker
-    ];
-    
-    let lastError: Error | null = null;
-    
-    for (const endpoint of endpoints) {
-      try {
-        const data = await this.get<any>(endpoint.path, endpoint.params);
-        
-        // Try different possible field names in Apex API response
-        const rate = data.currentFundingRate 
-          ?? data.fundingRate 
-          ?? data.funding_rate
-          ?? data.rate
-          ?? data.data?.fundingRate
-          ?? data.data?.currentFundingRate;
+    try {
+      // Apex Omni v3 API endpoint for historical funding rates
+      // Get the most recent funding rate
+      const data = await this.get<any>('/api/v3/history-funding', { 
+        symbol: symbol,
+        limit: 1  // Get only the most recent rate
+      });
+      
+      // Parse response structure: { historyFunds: [ { rate: "0.0001", ... } ] }
+      if (data && data.historyFunds && data.historyFunds.length > 0) {
+        const latestFunding = data.historyFunds[0];
+        const rate = latestFunding.rate;
         
         if (rate !== undefined && rate !== null) {
           const parsedRate = parseFloat(String(rate));
@@ -266,26 +266,24 @@ export class ApexExchange {
             return parsedRate;
           }
         }
-        
-        // If we got a response but no valid funding rate, try next endpoint
-        continue;
-        
-      } catch (error: any) {
-        lastError = error;
-        // Continue trying other endpoints
-        continue;
       }
+      
+      // If no valid funding rate found, log warning and return 0
+      console.warn(`⚠️  No funding rate data available for ${symbol} from Apex Omni`);
+      console.warn(`⚠️  Endpoint: /api/v3/history-funding`);
+      console.warn(`⚠️  Response structure:`, JSON.stringify(data, null, 2));
+      console.warn(`⚠️  Returning 0 for funding rate to allow bot to continue.`);
+      
+      return 0;
+      
+    } catch (error: any) {
+      console.warn(`⚠️  Could not fetch funding rate from Apex API for ${symbol}`);
+      console.warn(`⚠️  Error:`, error.message || 'Unknown error');
+      console.warn(`⚠️  Returning 0 for funding rate to allow bot to continue.`);
+      console.warn(`⚠️  Note: Check Apex API documentation at https://api-docs.pro.apex.exchange/`);
+      
+      return 0;
     }
-    
-    // If all endpoints failed, log detailed error and return 0
-    console.warn(`⚠️  Could not fetch funding rate from Apex API for ${symbol}`);
-    console.warn(`⚠️  Attempted endpoints:`, endpoints.map(e => e.path).join(', '));
-    console.warn(`⚠️  Last error:`, lastError?.message || 'Unknown error');
-    console.warn(`⚠️  Returning 0 for funding rate to allow bot to continue.`);
-    console.warn(`⚠️  Note: You may need to update the Apex API endpoint configuration.`);
-    console.warn(`⚠️  Check Apex API documentation at https://docs.apex.exchange`);
-    
-    return 0; // Return 0 instead of throwing to allow bot to continue
   }
 
   /**
