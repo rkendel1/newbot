@@ -706,8 +706,8 @@ A: Yes, use `--leverage <value>`. But higher leverage = higher liquidation risk.
 
 **Q: How do I withdraw profits?**
 A: Manually withdraw from each exchange:
-- Bybit: Bridge USDC back to Arbitrum, then to CEX
-- Binance: Withdraw USDT directly
+- Bybit: Withdraw USDT directly from the exchange
+- Binance: Withdraw USDT directly from the exchange
 
 ---
 

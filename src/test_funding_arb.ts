@@ -266,7 +266,7 @@ async function runTests() {
   
   if (opportunity1) {
     console.log(`✅ PASS: Opportunity detected! (${duration1.toFixed(3)}ms)`);
-    console.log(`   Strategy: ${opportunity1.sideBybit} on HL, ${opportunity1.sideBin} on Binance`);
+    console.log(`   Strategy: ${opportunity1.sideBybit} on Bybit, ${opportunity1.sideBin} on Binance`);
   } else {
     console.log(`❌ FAIL: No opportunity detected (expected opportunity)`);
   }
@@ -442,7 +442,7 @@ async function runTests() {
   
   if (opportunity6 && opportunity6.sideBybit === 'SHORT' && opportunity6.sideBin === 'LONG') {
     console.log(`✅ PASS: Correct strategy for negative spread`);
-    console.log(`   Strategy: ${opportunity6.sideBybit} on HL, ${opportunity6.sideBin} on Binance`);
+    console.log(`   Strategy: ${opportunity6.sideBybit} on Bybit, ${opportunity6.sideBin} on Binance`);
   } else if (opportunity6) {
     console.log(`❌ FAIL: Wrong strategy detected`);
   } else {
