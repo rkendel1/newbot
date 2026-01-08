@@ -1,12 +1,23 @@
 # Funding Rate Arbitrage Bot
 
-A fully automated trading bot that exploits funding rate differences between Bybit (CEX) and Binance (CEX) perpetual futures markets to generate consistent returns through delta-neutral arbitrage.
+A fully automated trading bot that exploits funding rate differences between perpetual futures markets to generate consistent returns through delta-neutral arbitrage.
+
+## 🆕 New: Apex Omni Support
+
+**You can now choose between two Exchange A options:**
+
+- **Bybit** (Centralized Exchange) - Traditional CEX with KYC
+- **Apex Omni** (Decentralized Exchange) - DEX on StarkEx L2, no KYC required
+
+Both work seamlessly with **Binance** as Exchange B.
+
+➡️ **[See Apex Omni Setup Guide](./APEX_SETUP.md)** for detailed instructions on switching to the decentralized option.
 
 ## 📊 What This Bot Does
 
 The bot monitors funding rates on BTC perpetual futures across two exchanges:
-- **Bybit** (Centralized Exchange)
-- **Binance** (Centralized Exchange)
+- **Exchange A**: Bybit (CEX) or Apex Omni (DEX)
+- **Exchange B**: Binance (CEX)
 
 When the funding rate spread exceeds a threshold, it opens **delta-neutral positions**:
 - Long on the exchange with higher funding rate (collect funding)
@@ -45,6 +56,7 @@ Risk: Market-neutral (hedged)
 - ✅ **Risk Management**: Position limits, daily caps, auto-close
 - ✅ **Real-time Logging**: Detailed trade and position tracking
 - ✅ **Performance Tested**: 25,000+ decisions/second capability
+- ✅ **Apex Omni Support**: Trade on decentralized exchange (no KYC, non-custodial)
 
 ![Screenshot](./run.png)
 
@@ -52,6 +64,9 @@ Risk: Market-neutral (hedged)
 
 1. [Prerequisites](#prerequisites)
 2. [Account Setup](#account-setup)
+   - [Bybit Setup](#1-bybit-account-setup)
+   - [Apex Omni Setup](#apex-omni-alternative) (Alternative to Bybit)
+   - [Binance Setup](#2-binance-account-setup)
 3. [Installation](#installation)
 4. [Configuration](#configuration)
 5. [Running the Bot](#running-the-bot)
@@ -195,6 +210,40 @@ curl -X GET "https://api.bybit.com/v5/account/wallet-balance?accountType=CONTRAC
 ```
 
 Should return your derivatives account balance.
+
+---
+
+### Apex Omni (Alternative)
+
+**Don't want to use Bybit?** You can use **Apex Omni** instead!
+
+Apex Omni is a **decentralized exchange** (DEX) on StarkEx L2 that offers:
+- ✅ No KYC required
+- ✅ Non-custodial (you control your funds)
+- ✅ Accessible to US users
+- ✅ Low L2 gas fees
+- ✅ Perpetual futures with funding rates
+
+**➡️ [Complete Apex Omni Setup Guide](./APEX_SETUP.md)**
+
+The Apex setup guide covers:
+1. Generating StarkEx key pairs
+2. Creating an Apex account
+3. Funding your L2 wallet
+4. Configuring the bot for Apex
+
+**Quick Start:**
+1. Generate StarkEx keys at [https://pro.apex.exchange](https://pro.apex.exchange)
+2. Deposit USDC to your L2 wallet
+3. Update `.env`:
+   ```bash
+   USE_APEX=true
+   APEX_STARK_PRIVATE_KEY=0x...
+   APEX_STARK_PUBLIC_KEY=0x...
+   APEX_ACCOUNT_ID=12345
+   APEX_POSITION_ID=0
+   ```
+4. Run with `npm run auto-trade-apex`
 
 ---
 
@@ -406,10 +455,31 @@ cat .gitignore | grep .env
 
 ## Running the Bot
 
-### 1. Test Run (Recommended First)
+### 1. Choose Your Exchange Pair
+
+The bot supports two configurations:
+
+**Option A: Bybit + Binance (Default)**
+```bash
+# In .env:
+# USE_BYBIT=true (or leave USE_APEX commented out)
+
+npm run auto-trade
+```
+
+**Option B: Apex + Binance**
+```bash
+# In .env:
+USE_APEX=true
+
+npm run auto-trade-apex
+```
+
+### 2. Test Run (Recommended First)
 
 Before running with real funds, do a dry run to verify everything works:
 
+**With Bybit:**
 ```bash
 npm run auto-trade
 ```
@@ -423,7 +493,34 @@ Strategy: Delta-Neutral Funding Rate Arbitrage
 Exchanges: Bybit (CEX) ↔ Binance (CEX)
 Asset: BTC Perpetual Futures
 ============================================================
+```
 
+**With Apex:**
+```bash
+npm run auto-trade-apex
+```
+
+You should see:
+```
+============================================================
+🚀 Funding Rate Arbitrage Bot
+============================================================
+Strategy: Delta-Neutral Funding Rate Arbitrage
+Exchanges: Apex Omni (DEX) ↔ Binance (CEX)
+Asset: BTC Perpetual Futures
+============================================================
+
+🔷 Apex Omni Features:
+  • Decentralized (StarkEx L2)
+  • No KYC required
+  • Non-custodial
+  • Accessible to US users
+  • All orders require StarkEx signing
+============================================================
+```
+
+**Common Configuration Output:**
+```
 📊 Configuration:
   Min Funding Spread:     0.020%
   Max Position Size:      $10,000
@@ -439,11 +536,12 @@ Asset: BTC Perpetual Futures
 ```
 
 **If you see errors:**
-- "BYBIT_API_KEY not found" → Check your `.env` file
-- "Invalid API key" → Verify both Bybit API keys are correct
-- "Binance API error" → Verify API keys are correct and Futures is enabled
+- "BYBIT_API_KEY not found" → Check your `.env` file (for Bybit mode)
+- "APEX_STARK_PRIVATE_KEY not found" → Check your `.env` file (for Apex mode)
+- "Invalid API key" → Verify API keys are correct
+- "Binance API error" → Verify Binance API keys are correct and Futures is enabled
 
-### 2. Start Bot (Production)
+### 3. Start Bot (Production)
 
 Once verified, run the bot:
 
