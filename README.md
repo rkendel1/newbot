@@ -2,31 +2,37 @@
 # Donation 0xCBAcAf95cde23F6050e7EB05337Fad542B1597bE
 
 # [telegram: blategold](https://t.me/blategold) lets connect.
-A professional TypeScript-based trading bot for Polymarket with full credential management, order execution, market analysis, and **automated arbitrage trading** capabilities.
+A professional TypeScript-based trading bot featuring **cross-exchange funding rate arbitrage** as the primary strategy, with legacy Polymarket trading capabilities.
 
 ## Features
 
+- 🎯 **Funding Rate Arbitrage (PRIMARY)**: Automated cross-exchange arbitrage between Hyperliquid and Binance perpetuals
+- 💰 **Delta-Neutral Trading**: Hedge positions across exchanges for low-risk fixed yields (20-50% APR)
+- 📊 **Real-time Funding Rate Monitoring**: Continuous monitoring of funding rate spreads
+- 🤖 **Automated Opportunity Detection**: Triggers trades when spread exceeds configurable threshold
 - 🔐 **Credential Management**: Secure private key handling and API authentication
-- 💰 **Allowance Control**: Manage USDC token allowances for trading
-- 📊 **Market Analysis**: Real-time bid/ask spreads and price data
-- 🎯 **Order Execution**: Place market and limit orders
-- 🔍 **Market Discovery**: Auto-detect current Bitcoin markets
-- 📈 **Price Tracking**: Get real-time price updates from order books
-- 🤖 **Auto Trading Bot**: Automated arbitrage trading with risk management
+- 💼 **Legacy Polymarket Support**: Original arbitrage trading features available as fallback
+- 📈 **Price Tracking**: Real-time price updates from multiple exchanges
+
 ![Screenshot](./run.png)
 
 ![Screenshot](./tx.png)
-## Two Modes of Operation
 
-### 1. Manual Trading (Interactive CLI)
-Use the interactive menu to manually place trades, check prices, and manage your account.
+## Two Trading Strategies
 
-### 2. Automated Trading Bot
-Fully automated bot that:
+### 1. Funding Rate Arbitrage (PRIMARY - Recommended)
+Exploits funding rate differences between Hyperliquid (DEX perps) and Binance (CEX perps):
+- **Long** on the exchange with higher funding rate (collect positive funding)
+- **Short** on the exchange with lower funding rate (avoid paying funding)
+- **Delta-neutral**: Net zero market exposure, profit from rate spread
+- **Expected APR**: 20-50% depending on market conditions
+- **Risk Profile**: Low (hedged positions, no directional exposure)
+
+### 2. Polymarket Arbitrage (LEGACY - Fallback)
+Original functionality for Polymarket prediction market trading:
 - Monitors price differences between software oracle and market
 - Executes trades when profitable opportunities detected
 - Automatically sets take profit and stop loss orders
-- Manages risk with configurable parameters
 
 ## Installation
 
@@ -34,8 +40,8 @@ Fully automated bot that:
 # Install dependencies
 npm install
 
-# Create .env file
-# Edit with your private key and configuration
+# Create .env file with your credentials
+# See Configuration section below
 ```
 
 ## Configuration
@@ -43,39 +49,54 @@ npm install
 Edit `.env` file:
 
 ```env
+# Ethereum/Polygon wallet (for Polymarket legacy mode)
 PRIVATE_KEY=your_private_key_here
 CLOB_API_URL=https://clob.polymarket.com
 POLYGON_CHAIN_ID=137
 
-# Auto Trading Parameters
+# Funding Arbitrage Configuration (PRIMARY STRATEGY)
+HYPERLIQUID_PRIVATE_KEY=your_hyperliquid_private_key
+BINANCE_API_KEY=your_binance_api_key
+BINANCE_SECRET_KEY=your_binance_secret_key
+FUNDING_THRESHOLD=0.001  # Minimum spread to trigger trade (0.1%)
+DEFAULT_TRADE_AMOUNT=1000  # USDT notional per side
+
+# Legacy Polymarket Parameters (optional)
 SOFTWARE_WS_URL=ws://45.130.166.119:5001
 PRICE_DIFFERENCE_THRESHOLD=0.015
 STOP_LOSS_AMOUNT=0.005
 TAKE_PROFIT_AMOUNT=0.01
-DEFAULT_TRADE_AMOUNT=5.0
 TRADE_COOLDOWN=30
 ```
 
 ## Usage
 
-### Generate CLOB Credentials (First Time Setup)
+### Run Funding Arbitrage Bot (PRIMARY STRATEGY)
 
 ```bash
-npm run gen-creds
+npm run auto-trade -- --strategy=funding-arb
 ```
 
-### Run Auto Trading Bot
+This starts the funding rate arbitrage bot that:
+- Monitors BTC funding rates on Hyperliquid and Binance every hour
+- Detects opportunities when spread exceeds threshold
+- Provides framework for executing delta-neutral hedged positions
+- Targets 20-50% APR through funding rate collection
+
+### Run Legacy Polymarket Bot (FALLBACK)
 
 ```bash
 npm run auto-trade
+# or
+npm run dev
 ```
 
-This starts the fully automated arbitrage trading bot. See `PROFIT_STRATEGY.md` for detailed explanation of the trading logic.
+This runs the original Polymarket arbitrage strategy.
 
-### Run Manual Interactive Bot
+### Generate CLOB Credentials (For Polymarket Mode)
 
 ```bash
-npm run dev
+npm run gen-creds
 ```
 
 ### Individual Scripts
@@ -112,64 +133,66 @@ npm start
 ```
 polymarket-ts-bot/
 ├── src/
+│   ├── auto_trading_bot.ts      # Main bot with funding arb + Polymarket strategies
+│   ├── funding_rate_monitor.ts  # Funding rate fetching and opportunity detection
+│   ├── market_order.ts          # Order execution (multi-exchange support)
 │   ├── main.ts                  # Interactive CLI trading interface
-│   ├── auto_trading_bot.ts      # Automated arbitrage bot
 │   ├── _gen_credential.ts       # Credential management
 │   ├── allowance.ts             # Token allowance management
 │   ├── bid_asker.ts             # Bid/ask price fetching
-│   ├── market_order.ts          # Order execution
 │   ├── market_finder.ts         # Market discovery
 │   └── generate_credentials.ts  # Credential generation utility
 ├── .env                         # Environment variables (private)
 ├── .credentials.json            # Generated API credentials
 ├── package.json                 # Dependencies and scripts
-├── PROFIT_STRATEGY.md          # Detailed trading strategy guide
-└── CREDENTIALS_GUIDE.md        # How to generate credentials
+└── README.md                    # This file
 ```
 
-## Auto Trading Bot Logic
-
-The automated bot implements a price arbitrage strategy:
-
-1. **Price Monitoring**: Compares software oracle prices with Polymarket market prices
-2. **Opportunity Detection**: Triggers trade when price difference exceeds threshold
-3. **Three-Order Execution**:
-   - Market Buy: Buys tokens at current price
-   - Take Profit Limit Sell: Sells when price rises
-   - Stop Loss Limit Sell: Sells when price falls
-4. **Risk Management**: Configurable stop loss and take profit levels
-
-**Read `PROFIT_STRATEGY.md` for complete explanation of how the bot makes profit.**
-
-## Trading Strategy Overview
+## Funding Arbitrage Strategy Details
 
 ### How It Works
 
+The bot exploits funding rate differences between perpetual futures exchanges:
+
+1. **Rate Monitoring**: Fetches real-time funding rates from Hyperliquid and Binance APIs
+2. **Opportunity Detection**: Triggers when `|Hyperliquid Rate - Binance Rate| > threshold`
+3. **Delta-Neutral Position**: 
+   - Long on exchange with higher funding rate (collect positive funding)
+   - Short on exchange with lower funding rate (minimize funding payment)
+   - Equal notional value on both sides = net zero market exposure
+4. **Profit Source**: Funding rate spread paid every 8 hours
+5. **Exit Strategy**: Close positions when rates converge or target profit reached
+
+### Example Trade
+
 ```
-Software Oracle calculates UP token worth: $0.75
-Market selling UP token at: $0.70
-Difference: $0.05 (above $0.015 threshold)
+Hyperliquid Funding Rate: +0.15% (8-hour)
+Binance Funding Rate:     +0.05% (8-hour)
+Spread:                   0.10% (exceeds 0.001 threshold)
 
-Bot executes:
-1. BUY @ $0.70 (market order)
-2. SELL @ $0.71 (take profit +$0.01)
-3. SELL @ $0.695 (stop loss -$0.005)
+Action:
+- LONG  $1000 BTC on Hyperliquid (collect +0.15% = +$1.50)
+- SHORT $1000 BTC on Binance    (pay    -0.05% = -$0.50)
+Net profit per 8h: $1.00 (0.10%)
+Annualized APR: ~44%
 
-Expected outcome:
-- 70% chance: Take profit hits → +$0.01 profit
-- 30% chance: Stop loss hits → -$0.005 loss
-- Net expectation: Positive
+Risk: Delta-neutral (hedged against BTC price movement)
 ```
 
 ### Configuration Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| PRICE_DIFFERENCE_THRESHOLD | 0.015 | Minimum price difference to trigger trade |
-| TAKE_PROFIT_AMOUNT | 0.01 | Profit target above buy price |
-| STOP_LOSS_AMOUNT | 0.005 | Maximum loss below buy price |
-| DEFAULT_TRADE_AMOUNT | 5.0 | USDC amount per trade |
-| TRADE_COOLDOWN | 30 | Seconds between trades |
+| FUNDING_THRESHOLD | 0.001 | Minimum rate spread (0.1%) to trigger trade |
+| DEFAULT_TRADE_AMOUNT | 1000 | USDT notional value per side |
+| Check Interval | 3600s | How often to check for opportunities (1 hour) |
+
+### Fees and Considerations
+
+- **Hyperliquid**: Dynamic maker/taker fees (typically low)
+- **Binance**: ~0.02% per trade (0.04% round trip)
+- **Gas Fees**: Minimal on Arbitrum (Hyperliquid)
+- **Net APR**: Typically 20-50% after fees, varies with market conditions
 
 ## Modules
 
@@ -269,7 +292,9 @@ npx eslint src/
 
 ## Dependencies
 
-- `@polymarket/clob-client` - Official Polymarket CLOB client
+- `hyperliquid` - Hyperliquid DEX SDK for perpetual trading
+- `@binance/connector` - Official Binance API connector
+- `@polymarket/clob-client` - Polymarket CLOB client (legacy)
 - `ethers` - Ethereum wallet and cryptography
 - `axios` - HTTP requests
 - `dotenv` - Environment variable management

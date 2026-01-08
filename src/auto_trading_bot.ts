@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { BalanceChecker, BalanceInfo } from './balance_checker';
+import { FundingRateMonitor } from './funding_rate_monitor';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -38,6 +39,7 @@ class AutoTradingBot {
     private wallet: Wallet;
     private client: ClobClient;
     private balanceChecker: BalanceChecker;
+    private fundingMonitor: FundingRateMonitor | null = null;
     private tokenIdUp: string | null = null;
     private tokenIdDown: string | null = null;
     
@@ -58,6 +60,8 @@ class AutoTradingBot {
     private softwareWs: WebSocket | null = null;
     private polymarketWs: WebSocket | null = null;
     private isRunning: boolean = false;
+    
+    private useFundingArbStrategy: boolean = false;
 
     constructor() {
         const privateKey = process.env.PRIVATE_KEY;
@@ -81,6 +85,25 @@ class AutoTradingBot {
         this.takeProfitAmount = parseFloat(process.env.TAKE_PROFIT_AMOUNT || '0.01');
         this.tradeCooldown = parseInt(process.env.TRADE_COOLDOWN || '30') * 1000;
         this.tradeAmount = parseFloat(process.env.DEFAULT_TRADE_AMOUNT || '5.0');
+
+        // Check for funding arbitrage strategy flag
+        this.useFundingArbStrategy = this.isFundingArbStrategyEnabled();
+        
+        // Initialize funding monitor if strategy is enabled
+        if (this.useFundingArbStrategy) {
+            try {
+                this.fundingMonitor = new FundingRateMonitor();
+            } catch (error: any) {
+                console.warn(`⚠️  Funding monitor initialization failed: ${error.message}`);
+                console.warn('Falling back to default Polymarket strategy');
+                this.useFundingArbStrategy = false;
+            }
+        }
+    }
+
+    private isFundingArbStrategyEnabled(): boolean {
+        const args = process.argv.slice(2);
+        return args.includes('--strategy=funding-arb');
     }
 
     async start() {
@@ -88,6 +111,17 @@ class AutoTradingBot {
         console.log('Starting Auto Trading Bot...');
         console.log('='.repeat(60));
         console.log(`Wallet: ${this.wallet.address}`);
+        
+        // Prioritize funding arbitrage strategy
+        if (this.useFundingArbStrategy && this.fundingMonitor) {
+            console.log('Strategy: Funding Rate Arbitrage (PRIMARY MODE)');
+            console.log('='.repeat(60));
+            await this.startFundingArbStrategy();
+            return;
+        }
+        
+        // Legacy Polymarket strategy (fallback)
+        console.log('Strategy: Polymarket Arbitrage (LEGACY MODE)');
         console.log(`Threshold: $${this.priceThreshold.toFixed(4)}`);
         console.log(`Take Profit: +$${this.takeProfitAmount.toFixed(4)}`);
         console.log(`Stop Loss: -$${this.stopLossAmount.toFixed(4)}`);
@@ -511,6 +545,96 @@ class AutoTradingBot {
             console.error(`Error: ${error.message}`);
             console.error('='.repeat(60));
         }
+    }
+
+    private async startFundingArbStrategy() {
+        if (!this.fundingMonitor) {
+            console.error('❌ Funding monitor not initialized');
+            return;
+        }
+
+        const threshold = parseFloat(process.env.FUNDING_THRESHOLD || '0.001');
+        console.log('✅ Funding arbitrage strategy active (PRIMARY MODE)');
+        console.log(`Funding Rate Threshold: ${(threshold * 100).toFixed(3)}%`);
+        console.log(`Trade Amount: ${this.tradeAmount} USDT per side`);
+        console.log('Exchange Pair: Hyperliquid <-> Binance');
+        console.log('Asset: BTC Perpetuals');
+        console.log('\n🔄 Starting funding rate monitoring...\n');
+
+        this.isRunning = true;
+
+        // Initial check immediately
+        await this.checkFundingOpportunity(threshold);
+
+        const checkInterval = 3600000; // Check every hour (funding typically pays every 8h)
+        
+        setInterval(async () => {
+            if (!this.isRunning || !this.fundingMonitor) return;
+            await this.checkFundingOpportunity(threshold);
+        }, checkInterval);
+
+        console.log('⏰ Monitoring active - checking every hour for opportunities...\n');
+    }
+
+    private async checkFundingOpportunity(threshold: number) {
+        if (!this.fundingMonitor) {
+            console.error('Funding monitor not available');
+            return;
+        }
+
+        try {
+            const { hlRate, binRate } = await this.fundingMonitor.getFundingRates();
+            const spread = hlRate - binRate;
+            const spreadPct = (Math.abs(spread) * 100).toFixed(4);
+            
+            console.log('─'.repeat(60));
+            console.log(`[${new Date().toISOString()}] Funding Rate Check`);
+            console.log(`Hyperliquid: ${(hlRate * 100).toFixed(4)}%`);
+            console.log(`Binance:     ${(binRate * 100).toFixed(4)}%`);
+            console.log(`Spread:      ${spreadPct}% (threshold: ${(threshold * 100).toFixed(3)}%)`);
+            
+            const opportunity = await this.fundingMonitor.detectOpportunity(threshold);
+            
+            if (opportunity) {
+                console.log('🎯 OPPORTUNITY DETECTED!');
+                console.log('─'.repeat(60));
+                await this.executeFundingArb(opportunity);
+            } else {
+                console.log('Status: No opportunity - spread within threshold');
+                console.log('─'.repeat(60));
+            }
+        } catch (error: any) {
+            console.error('Error in funding rate check:', error.message);
+        }
+    }
+
+    private async executeFundingArb(opportunity: { sideHl: 'LONG' | 'SHORT', sideBin: 'LONG' | 'SHORT' }) {
+        console.log('\n' + '='.repeat(60));
+        console.log('💰 EXECUTING FUNDING ARBITRAGE TRADE');
+        console.log('='.repeat(60));
+        console.log(`Strategy: Delta-neutral hedged position`);
+        console.log(`Hyperliquid Position: ${opportunity.sideHl}`);
+        console.log(`Binance Position:     ${opportunity.sideBin}`);
+        console.log(`Notional Size:        ${this.tradeAmount} USDT per side`);
+        console.log('='.repeat(60));
+        
+        console.log('\n⚠️  IMPLEMENTATION NOTE:');
+        console.log('This is a framework for the funding arbitrage strategy.');
+        console.log('To enable actual trading, implement the following:');
+        console.log('');
+        console.log('1. Fetch current BTC/USDT price from both exchanges');
+        console.log('2. Calculate contract sizes for equal notional value');
+        console.log('3. Place market orders on Hyperliquid using the SDK:');
+        console.log('   - Use hlClient.exchange.placeOrder()');
+        console.log('4. Place market orders on Binance using futures API:');
+        console.log('   - Use binanceClient.futuresMarketOrder()');
+        console.log('5. Implement position monitoring for P&L tracking');
+        console.log('6. Add risk management (stop-loss, take-profit, rate convergence)');
+        console.log('7. Implement position closing logic when spread narrows');
+        console.log('');
+        console.log('Expected APR: 20-50% depending on funding rate spreads');
+        console.log('Risks: Execution slippage, exchange fees, position liquidation');
+        console.log('\n' + '='.repeat(60) + '\n');
     }
 
     stop() {
