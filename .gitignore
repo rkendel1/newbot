@@ -1,4 +1,7 @@
 # Environment variables
+.env
+.credentials.json
+
 # Dependencies
 node_modules/
 package-lock.json
@@ -7,7 +10,10 @@ package-lock.json
 dist/
 *.js
 *.js.map
+
+# Allow type declarations in src
 *.d.ts
+!src/*.d.ts
 
 # IDE
 .vscode/
