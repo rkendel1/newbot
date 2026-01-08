@@ -407,6 +407,11 @@ export class ApexExchange {
       );
     }
     
+    // Store validated credentials in local variables to avoid non-null assertions
+    const accountId = this.accountId;
+    const positionId = this.positionId;
+    const publicKey = this.starkPublicKey;
+    
     const {
       symbol,
       side,
@@ -428,8 +433,8 @@ export class ApexExchange {
       price: String(price),
       type: orderType.toUpperCase() as 'LIMIT' | 'MARKET',
       timeInForce: timeInForce.toUpperCase(),
-      accountId: this.accountId!,
-      positionId: this.positionId!,
+      accountId,
+      positionId,
       nonce,
       expiration,
       reduceOnly,
@@ -442,7 +447,7 @@ export class ApexExchange {
     // Sign the order
     const signature = this.signOrder(order);
     order.signature = signature;
-    order.publicKey = this.starkPublicKey;
+    order.publicKey = publicKey;
 
     console.log(`📤 Placing Apex order: ${side} ${size} ${symbol} @ ${price}`);
     
