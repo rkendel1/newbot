@@ -60,6 +60,8 @@ class AutoTradingBot {
     private softwareWs: WebSocket | null = null;
     private polymarketWs: WebSocket | null = null;
     private isRunning: boolean = false;
+    
+    private useFundingArbStrategy: boolean = false;
 
     constructor() {
         const privateKey = process.env.PRIVATE_KEY;
@@ -84,28 +86,34 @@ class AutoTradingBot {
         this.tradeCooldown = parseInt(process.env.TRADE_COOLDOWN || '30') * 1000;
         this.tradeAmount = parseFloat(process.env.DEFAULT_TRADE_AMOUNT || '5.0');
 
+        // Check for funding arbitrage strategy flag
+        this.useFundingArbStrategy = this.isFundingArbStrategyEnabled();
+        
         // Initialize funding monitor if strategy is enabled
-        const args = process.argv.slice(2);
-        if (args.includes('--strategy=funding-arb')) {
+        if (this.useFundingArbStrategy) {
             try {
                 this.fundingMonitor = new FundingRateMonitor();
             } catch (error: any) {
                 console.warn(`⚠️  Funding monitor initialization failed: ${error.message}`);
                 console.warn('Falling back to default Polymarket strategy');
+                this.useFundingArbStrategy = false;
             }
         }
     }
 
-    async start() {
+    private isFundingArbStrategyEnabled(): boolean {
         const args = process.argv.slice(2);
-        
+        return args.includes('--strategy=funding-arb');
+    }
+
+    async start() {
         console.log('='.repeat(60));
         console.log('Starting Auto Trading Bot...');
         console.log('='.repeat(60));
         console.log(`Wallet: ${this.wallet.address}`);
         
         // Prioritize funding arbitrage strategy
-        if (args.includes('--strategy=funding-arb') && this.fundingMonitor) {
+        if (this.useFundingArbStrategy && this.fundingMonitor) {
             console.log('Strategy: Funding Rate Arbitrage (PRIMARY MODE)');
             console.log('='.repeat(60));
             await this.startFundingArbStrategy();
@@ -569,8 +577,13 @@ class AutoTradingBot {
     }
 
     private async checkFundingOpportunity(threshold: number) {
+        if (!this.fundingMonitor) {
+            console.error('Funding monitor not available');
+            return;
+        }
+
         try {
-            const { hlRate, binRate } = await this.fundingMonitor!.getFundingRates();
+            const { hlRate, binRate } = await this.fundingMonitor.getFundingRates();
             const spread = hlRate - binRate;
             const spreadPct = (Math.abs(spread) * 100).toFixed(4);
             
@@ -580,7 +593,7 @@ class AutoTradingBot {
             console.log(`Binance:     ${(binRate * 100).toFixed(4)}%`);
             console.log(`Spread:      ${spreadPct}% (threshold: ${(threshold * 100).toFixed(3)}%)`);
             
-            const opportunity = await this.fundingMonitor!.detectOpportunity(threshold);
+            const opportunity = await this.fundingMonitor.detectOpportunity(threshold);
             
             if (opportunity) {
                 console.log('🎯 OPPORTUNITY DETECTED!');

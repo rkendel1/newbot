@@ -25,6 +25,14 @@ export class FundingRateMonitor {
       throw new Error('HYPERLIQUID_PRIVATE_KEY not found in environment variables');
     }
 
+    const binApiKey = process.env.BINANCE_API_KEY;
+    const binSecretKey = process.env.BINANCE_SECRET_KEY;
+    
+    if (!binApiKey || !binSecretKey) {
+      console.warn('⚠️  Warning: BINANCE_API_KEY or BINANCE_SECRET_KEY not set');
+      console.warn('Binance funding rates may not be available');
+    }
+
     // Initialize Hyperliquid client
     this.hlClient = new Hyperliquid({
       privateKey: hlPrivateKey,
@@ -32,9 +40,7 @@ export class FundingRateMonitor {
     });
     
     // Initialize Binance client
-    const binApiKey = process.env.BINANCE_API_KEY || '';
-    const binSecretKey = process.env.BINANCE_SECRET_KEY || '';
-    this.binanceClient = new Spot(binApiKey, binSecretKey);
+    this.binanceClient = new Spot(binApiKey || '', binSecretKey || '');
   }
 
   async getFundingRates(): Promise<FundingRates> {
