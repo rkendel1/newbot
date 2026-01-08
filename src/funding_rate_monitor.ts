@@ -158,12 +158,12 @@ export class FundingRateMonitor extends EventEmitter {
     const symbolMap: Record<string, string> = {
       'BTCUSDT': 'BTC-USDT',
       'ETHUSDT': 'ETH-USDT',
-      'SOLUSDT': 'SOL-USDC',
-      'AVAXUSDT': 'AVAX-USDC',
-      'BNBUSDT': 'BNB-USDC',
-      'ADAUSDT': 'ADA-USDC',
-      'DOTUSDT': 'DOT-USDC',
-      'MATICUSDT': 'MATIC-USDC',
+      'SOLUSDT': 'SOL-USDT',
+      'AVAXUSDT': 'AVAX-USDT',
+      'BNBUSDT': 'BNB-USDT',
+      'ADAUSDT': 'ADA-USDT',
+      'DOTUSDT': 'DOT-USDT',
+      'MATICUSDT': 'MATIC-USDT',
     };
     
     // Check if we have an explicit mapping
@@ -175,18 +175,18 @@ export class FundingRateMonitor extends EventEmitter {
     if (binanceSymbol.endsWith('USDT')) {
       const base = binanceSymbol.replace(/USDT$/, '');
       console.warn(
-        `⚠️  No explicit mapping for ${binanceSymbol}, using fallback conversion: ${base}-USDC`
+        `⚠️  No explicit mapping for ${binanceSymbol}, using fallback conversion: ${base}-USDT`
       );
       console.warn(
         `   Verify this is correct on Apex exchange. Add to symbolMap if needed.`
       );
-      return `${base}-USDC`;
+      return `${base}-USDT`;
     }
     
     // If it doesn't end with USDT, we can't convert it
     throw new Error(
       `Cannot convert symbol ${binanceSymbol} to Apex format. ` +
-      `Apex uses USDC pairs (e.g., BTC-USDC). ` +
+      `Apex uses USDT pairs (e.g., BTC-USDT). ` +
       `Please add ${binanceSymbol} to the symbol mapping table in apex_funding_monitor.ts`
     );
   }

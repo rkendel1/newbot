@@ -242,7 +242,7 @@ export class ApexExchange {
    * Apex Omni uses /api/v3/history-funding endpoint for funding rates.
    * The endpoint returns historical funding rates, we take the most recent one.
    * 
-   * @param symbol - Market symbol (e.g., 'BTC-USDC', 'ETH-USDC')
+   * @param symbol - Market symbol (e.g., 'BTC-USDT', 'ETH-USDT')
    * @returns Funding rate as a decimal (e.g., 0.0001 = 0.01%)
    */
   async getFundingRate(symbol: string): Promise<number> {
