@@ -70,6 +70,7 @@ export class CoinbasePerpsAPIError extends Error {
 
 export class CoinbasePerps {
   private client: AxiosInstance;
+  private publicClient: AxiosInstance;
   private baseUrl: string;
   private apiKey: string;
   private apiSecret: string;
@@ -77,7 +78,7 @@ export class CoinbasePerps {
   private timeout: number;
 
   constructor(config: CoinbasePerpsConfig) {
-    this.baseUrl = config.baseUrl || 'https://api.exchange.coinbase.com';
+    this.baseUrl = process.env.COINBASE_BASE_URL || config.baseUrl || 'https://api-public.international.coinbase.com';
     this.baseUrl = this.baseUrl.replace(/\/$/, '');
     this.apiKey = config.apiKey;
     this.apiSecret = config.apiSecret;
@@ -85,6 +86,11 @@ export class CoinbasePerps {
     this.timeout = config.timeout || 10000;
 
     this.client = axios.create({
+      baseURL: this.baseUrl,
+      timeout: this.timeout,
+    });
+
+    this.publicClient = axios.create({
       baseURL: this.baseUrl,
       timeout: this.timeout,
     });
@@ -221,28 +227,45 @@ export class CoinbasePerps {
   }
 
   /**
+   * Public GET request without authentication (for market data)
+   */
+  private async publicGet<T>(path: string, params?: Record<string, any>): Promise<T> {
+    try {
+      const fullPath = params 
+        ? `${path}?${new URLSearchParams(params).toString()}`
+        : path;
+      
+      const response = await this.publicClient.get(fullPath);
+      return this.handleResponse<T>(response);
+    } catch (error: any) {
+      if (error instanceof CoinbasePerpsAPIError) {
+        throw error;
+      }
+      throw new CoinbasePerpsAPIError(
+        `Public GET ${path} failed: ${error.message || String(error)}`
+      );
+    }
+  }
+
+  /**
    * Get the current funding rate for a perpetual product
    * 
-   * NOTE: Coinbase Exchange (api.exchange.coinbase.com) does not support perpetual futures.
-   * Perpetual futures are only available on Coinbase International Exchange, which requires
-   * a different API (api.international.coinbase.com) and is not available to U.S. users.
+   * Uses Coinbase International Exchange API (public endpoint, no auth needed).
+   * Funding rate is in product details as 'predicted_funding_rate' (next 8h rate).
    * 
-   * This method will attempt to fetch funding rates from various possible endpoints,
-   * but may fail if the API structure doesn't match expectations.
-   * 
-   * @param symbol - Product ID (e.g., 'ETH-PERP', 'BTC-PERP')
-   * @returns Funding rate as a decimal (e.g., 0.0001 = 0.01%)
+   * @param symbol - Product ID (e.g., 'BTC-PERP', 'ETH-PERP')
+   * @returns Funding rate as a decimal (e.g., -0.000125 = -0.0125%)
    */
-  async getFundingRate(symbol: string = 'ETH-PERP'): Promise<number> {
+  async getFundingRate(symbol: string = 'BTC-PERP'): Promise<number> {
     try {
-      // Try the standard funding rate endpoint
-      const data = await this.get<any>(`/products/${symbol}/funding-rate`);
+      // Public endpoint for product details
+      const data = await this.publicGet<any>(`/products/${symbol}`);
       
-      // Coinbase returns funding rate in 'funding_rate' field
-      const rate = data.funding_rate ?? data.rate;
+      // Parse predicted_funding_rate (next funding rate)
+      const rate = data.predicted_funding_rate;
       
       if (rate === undefined || rate === null) {
-        console.error(`No funding rate field found in Coinbase API response for ${symbol}`);
+        console.error(`No predicted_funding_rate found in Coinbase International API response for ${symbol}`);
         console.error('Response structure:', JSON.stringify(data, null, 2));
         throw new CoinbasePerpsAPIError(
           `No funding rate in response for ${symbol}`
@@ -259,21 +282,13 @@ export class CoinbasePerps {
       
       return parsedRate;
     } catch (error: any) {
-      // Check if this is a 404 error
-      if (error.message && error.message.includes('404')) {
-        console.warn(`⚠️  Coinbase API endpoint not found: /products/${symbol}/funding-rate`);
-        console.warn(`⚠️  Note: Coinbase Exchange does not support perpetual futures.`);
-        console.warn(`⚠️  Perpetual futures are only available on Coinbase International (non-U.S.).`);
-        console.warn(`⚠️  Returning 0 for funding rate to allow bot to continue.`);
-        return 0; // Return 0 instead of throwing error
-      }
-      
-      if (error instanceof CoinbasePerpsAPIError) {
-        throw error;
-      }
-      throw new CoinbasePerpsAPIError(
-        `Failed to fetch funding rate for ${symbol}: ${error.message || String(error)}`
-      );
+      console.warn(`⚠️  Could not fetch funding rate from Coinbase International API for ${symbol}`);
+      console.warn(`⚠️  Endpoint: /products/${symbol}`);
+      console.warn(`⚠️  Error:`, error.message || String(error));
+      console.warn(`⚠️  Note: Perpetual futures are only available on Coinbase International (non-U.S.).`);
+      console.warn(`⚠️  For US users, consider alternative exchanges or check eligibility.`);
+      console.warn(`⚠️  Returning 0 for funding rate to allow bot to continue.`);
+      return 0; // Return 0 instead of throwing error
     }
   }
 
