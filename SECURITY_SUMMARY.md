@@ -19,7 +19,7 @@
 ✅ **Credential Protection:**
 - `.env` file added to `.gitignore`
 - `.credentials.json` added to `.gitignore`
-- Private keys never logged or exposed
+- API keys never logged or exposed
 - Example template (`.env.example`) provided without real credentials
 
 ✅ **Type Safety:**
@@ -47,28 +47,28 @@
 ### Dependencies Security
 
 All dependencies are from official, maintained sources:
-- `hyperliquid` - Official Hyperliquid SDK
+- `bybit-api` - Official Bybit SDK
 - `@binance/connector` - Official Binance API connector
 - `dotenv` - Widely used, well-maintained package
 - `typescript` - Official Microsoft package
-- `@ethersproject/wallet` - Part of ethers.js ecosystem
+- `ws` - WebSocket library for Node.js
 
 ### Recommendations for Users
 
-1. **Never commit `.env` file** - Contains private keys and API secrets
-2. **Use IP restrictions** on Binance API keys when possible
+1. **Never commit `.env` file** - Contains API keys and API secrets
+2. **Use IP restrictions** on both Bybit and Binance API keys when possible
 3. **Start with small amounts** to test the system
 4. **Enable 2FA** on all exchange accounts
-5. **Use separate wallet** for trading (not main holdings)
+5. **Only keep trading capital** on exchanges, not all funds
 6. **Regular monitoring** of positions and account balances
-7. **Hardware wallet** recommended for Hyperliquid with large funds
+7. **Disable withdrawal permissions** on API keys
 
 ### Changes Made (Security Related)
 
 - ✅ Added `.env` to `.gitignore`
 - ✅ Created `.env.example` template without real credentials
 - ✅ Improved type safety in Binance connector declarations
-- ✅ Removed all Polymarket-related code (reduced attack surface)
+- ✅ Removed Ethereum wallet dependencies (reduced attack surface)
 - ✅ Comprehensive security warnings in documentation
 
 ### No Vulnerabilities Found
