@@ -20,6 +20,7 @@
     "src/auto_trading_bot.ts",
     "src/funding_rate_monitor.ts",
     "src/config.ts",
+    "src/test_funding_arb.ts",
     "src/@binance-connector.d.ts"
   ],
   "exclude": ["node_modules", "dist"]
