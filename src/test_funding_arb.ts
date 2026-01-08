@@ -87,7 +87,7 @@ class MockFundingRateMonitor {
       if (spread > 0) {
         return { 
           sideBybit: 'LONG' as const, 
-          sideBin: 'SHORT' as const,
+          sideCoinbase: 'SHORT' as const,
           spread,
           dynamicThreshold
         };
@@ -348,7 +348,7 @@ async function runTests() {
   console.log();
   
   // Open first position
-  const mockOpp1 = { sideBybit: 'LONG', sideBin: 'SHORT', spread: 0.0003, dynamicThreshold: 0.0002 };
+  const mockOpp1 = { sideBybit: 'LONG', sideCoinbase: 'SHORT', spread: 0.0003, dynamicThreshold: 0.0002 };
   console.log('Opening Position 1...');
   
   const endTimerPos = perfMonitor.startTimer('Position Size Calculation');

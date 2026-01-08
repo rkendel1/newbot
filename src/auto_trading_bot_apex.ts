@@ -147,7 +147,7 @@ class AutoTradingBot {
       console.log('─'.repeat(60));
       console.log(`[${new Date().toISOString()}] Funding Rate Check`);
       console.log(`  ${this.exchangeName}:${' '.repeat(Math.max(1, 13 - this.exchangeName.length))}${(rates.exchangeARate * 100).toFixed(4)}%`);
-      console.log(`  Binance:     ${(rates.coinbaseRate * 100).toFixed(4)}%`);
+      console.log(`  Coinbase:     ${(rates.coinbaseRate * 100).toFixed(4)}%`);
       console.log(`  Spread:      ${(spread * 100).toFixed(4)}% (${spreadPct}%)`);
       
       if (this.useDynamicSpread) {
@@ -266,10 +266,10 @@ class AutoTradingBot {
     
     if (this.useApex) {
       console.log(`Apex:              ${opportunity.sideApex}`);
-      console.log(`Binance:           ${opportunity.sideCoinbase}`);
+      console.log(`Coinbase:           ${opportunity.sideCoinbase}`);
     } else {
       console.log(`Bybit:             ${opportunity.sideBybit}`);
-      console.log(`Binance:           ${opportunity.sideCoinbase}`);
+      console.log(`Coinbase:           ${opportunity.sideCoinbase}`);
     }
     
     console.log(`Notional Size:     $${positionSize.toLocaleString()}`);
@@ -319,7 +319,7 @@ class AutoTradingBot {
       console.log('   - Use bybitRest.submitOrder()');
     }
     
-    console.log('4. Place market orders on Binance:');
+    console.log('4. Place market orders on Coinbase:');
     console.log('   - Use coinbaseClient.placeOrder()');
     console.log('5. Store actual entry prices and funding rates');
     console.log('6. Monitor position for P&L tracking');
