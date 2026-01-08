@@ -1,19 +1,19 @@
 import { RestClientV5, WebsocketClient } from 'bybit-api';
 import EventEmitter from 'events';
-import WebSocket from 'ws';
 import * as dotenv from 'dotenv';
 import { DEFAULTS, SpreadHistoryEntry } from './config';
+import { CoinbasePerps, CoinbasePerpsConfig } from './coinbase_perps';
 
 dotenv.config();
 
 export interface FundingRates {
   bybitRate: number;
-  binRate: number;
+  coinbaseRate: number;
 }
 
 export interface Opportunity {
   sideBybit: 'LONG' | 'SHORT';
-  sideBin: 'LONG' | 'SHORT';
+  sideCoinbase: 'LONG' | 'SHORT';
   spread: number;
   dynamicThreshold: number;
 }
@@ -23,12 +23,13 @@ export const DEFAULT_FUNDING_THRESHOLD = DEFAULTS.MIN_FUNDING_SPREAD;
 export class FundingRateMonitor extends EventEmitter {
   private bybitWS: WebsocketClient;
   private bybitRest: RestClientV5;
-  private binanceWS: WebSocket | null = null;
+  private coinbaseClient: CoinbasePerps;
   private symbol: string;
+  private coinbaseSymbol: string; // Coinbase uses different format (e.g., BTC-PERP)
   private spreadHistory: SpreadHistoryEntry[] = [];
   private useDynamicSpread: boolean = false;
   private currentBybitRate: number = 0;
-  private currentBinanceRate: number = 0;
+  private currentCoinbaseRate: number = 0;
 
   constructor(useDynamicSpread: boolean = false) {
     super();
@@ -36,6 +37,9 @@ export class FundingRateMonitor extends EventEmitter {
     
     const symbol = process.env.SYMBOL || 'BTCUSDT';
     this.symbol = symbol;
+    
+    // Convert to Coinbase format (e.g., BTCUSDT -> BTC-PERP)
+    this.coinbaseSymbol = this.convertToCoinbaseSymbol(symbol);
 
     const bybitApiKey = process.env.BYBIT_API_KEY;
     const bybitApiSecret = process.env.BYBIT_API_SECRET;
@@ -44,12 +48,13 @@ export class FundingRateMonitor extends EventEmitter {
       throw new Error('BYBIT_API_KEY and BYBIT_API_SECRET not found in environment variables');
     }
 
-    const binApiKey = process.env.BINANCE_API_KEY;
-    const binSecretKey = process.env.BINANCE_SECRET_KEY;
+    const coinbaseApiKey = process.env.COINBASE_API_KEY;
+    const coinbaseApiSecret = process.env.COINBASE_API_SECRET;
+    const coinbasePassphrase = process.env.COINBASE_API_PASSPHRASE;
     
-    if (!binApiKey || !binSecretKey) {
-      console.warn('⚠️  Warning: BINANCE_API_KEY or BINANCE_SECRET_KEY not set');
-      console.warn('Binance funding rates may not be available');
+    if (!coinbaseApiKey || !coinbaseApiSecret || !coinbasePassphrase) {
+      console.warn('⚠️  Warning: COINBASE_API_KEY, COINBASE_API_SECRET, or COINBASE_API_PASSPHRASE not set');
+      console.warn('Coinbase funding rates may not be available');
     }
 
     // Initialize Bybit REST client
@@ -64,11 +69,61 @@ export class FundingRateMonitor extends EventEmitter {
       secret: bybitApiSecret,
       market: 'v5',
     });
+
+    // Initialize Coinbase client
+    const coinbaseConfig: CoinbasePerpsConfig = {
+      apiKey: coinbaseApiKey || '',
+      apiSecret: coinbaseApiSecret || '',
+      passphrase: coinbasePassphrase || '',
+    };
+    this.coinbaseClient = new CoinbasePerps(coinbaseConfig);
+  }
+
+  /**
+   * Convert Binance/Bybit symbol format to Coinbase format
+   * 
+   * Coinbase uses hyphenated format with -PERP suffix:
+   * - BTCUSDT -> BTC-PERP
+   * - ETHUSDT -> ETH-PERP
+   * 
+   * @param symbol - Symbol in Binance/Bybit format (e.g., 'BTCUSDT')
+   * @returns Symbol in Coinbase format (e.g., 'BTC-PERP')
+   */
+  private convertToCoinbaseSymbol(symbol: string): string {
+    // Mapping table for known pairs
+    const symbolMap: Record<string, string> = {
+      'BTCUSDT': 'BTC-PERP',
+      'ETHUSDT': 'ETH-PERP',
+    };
+    
+    // Check if we have an explicit mapping
+    if (symbolMap[symbol]) {
+      return symbolMap[symbol];
+    }
+    
+    // Fallback: Try to extract base currency from USDT pair
+    if (symbol.endsWith('USDT')) {
+      const base = symbol.replace(/USDT$/, '');
+      console.warn(
+        `⚠️  No explicit mapping for ${symbol}, using fallback conversion: ${base}-PERP`
+      );
+      console.warn(
+        `   Verify this is correct on Coinbase. Add to symbolMap if needed.`
+      );
+      return `${base}-PERP`;
+    }
+    
+    // If it doesn't end with USDT, we can't convert it
+    throw new Error(
+      `Cannot convert symbol ${symbol} to Coinbase format. ` +
+      `Coinbase uses PERP suffix (e.g., BTC-PERP). ` +
+      `Please add ${symbol} to the symbol mapping table in funding_rate_monitor.ts`
+    );
   }
 
   start() {
     this.subscribeBybit();
-    this.subscribeBinance();
+    this.subscribeCoinbase();
   }
 
   private subscribeBybit() {
@@ -97,40 +152,42 @@ export class FundingRateMonitor extends EventEmitter {
     this.bybitWS.subscribe([`tickers.${this.symbol}`]);
   }
 
-  private subscribeBinance() {
-    const wsUrl = `wss://fstream.binance.com/ws/${this.symbol.toLowerCase()}@markPrice`;
-    this.binanceWS = new WebSocket(wsUrl);
-
-    this.binanceWS.on('open', () => console.log('✅ Binance WS connected.'));
+  /**
+   * Poll Coinbase API for funding rates
+   * Coinbase doesn't provide WebSocket for funding rates, so we poll periodically
+   */
+  private subscribeCoinbase() {
+    const pollInterval = 60000; // Poll every 60 seconds
     
-    this.binanceWS.on('message', (msg: any) => {
-      try {
-        const data = JSON.parse(msg.toString());
-        if (data.r) { // 'r' is the funding rate field in mark price stream
-          const rate = parseFloat(data.r);
-          this.currentBinanceRate = rate;
-          this.emit('binance_funding', rate);
-        }
-      } catch (error: any) {
-        console.error('Error processing Binance message:', error.message);
-      }
-    });
+    console.log(`✅ Coinbase polling started (every ${pollInterval / 1000}s)`);
+    
+    // Initial fetch
+    this.fetchCoinbaseFundingRate();
+    
+    // Set up periodic polling
+    setInterval(() => {
+      this.fetchCoinbaseFundingRate();
+    }, pollInterval);
+  }
 
-    this.binanceWS.on('error', (err: any) => {
-      console.error('Binance WS error:', err);
-    });
-
-    this.binanceWS.on('close', () => {
-      console.log('Binance WS closed, reconnecting...');
-      setTimeout(() => this.subscribeBinance(), 5000);
-    });
+  /**
+   * Fetch funding rate from Coinbase REST API
+   */
+  private async fetchCoinbaseFundingRate() {
+    try {
+      const rate = await this.coinbaseClient.getFundingRate(this.coinbaseSymbol);
+      this.currentCoinbaseRate = rate;
+      this.emit('coinbase_funding', rate);
+    } catch (error: any) {
+      console.error('Error fetching Coinbase funding rate:', error.message);
+    }
   }
 
   async getFundingRates(): Promise<FundingRates> {
     try {
-      // If we have recent WebSocket data, use it
-      if (this.currentBybitRate !== 0 && this.currentBinanceRate !== 0) {
-        return { bybitRate: this.currentBybitRate, binRate: this.currentBinanceRate };
+      // If we have recent WebSocket/polling data, use it
+      if (this.currentBybitRate !== 0 && this.currentCoinbaseRate !== 0) {
+        return { bybitRate: this.currentBybitRate, coinbaseRate: this.currentCoinbaseRate };
       }
 
       // Otherwise fetch via REST API as fallback
@@ -143,26 +200,25 @@ export class FundingRateMonitor extends EventEmitter {
         ? parseFloat(bybitResponse.result.list[0].fundingRate) 
         : 0;
 
-      // For Binance, we rely on WebSocket data or need to make REST call
-      // Using current value from WebSocket if available
-      const binRate = this.currentBinanceRate;
+      // For Coinbase, fetch from REST API
+      const coinbaseRate = await this.coinbaseClient.getFundingRate(this.coinbaseSymbol);
 
-      return { bybitRate, binRate };
+      return { bybitRate, coinbaseRate };
     } catch (error: any) {
       console.error('Error fetching funding rates:', error.message);
-      return { bybitRate: 0, binRate: 0 };
+      return { bybitRate: 0, coinbaseRate: 0 };
     }
   }
 
   async detectOpportunity(threshold: number = DEFAULT_FUNDING_THRESHOLD): Promise<Opportunity | null> {
     try {
-      const { bybitRate, binRate } = await this.getFundingRates();
+      const { bybitRate, coinbaseRate } = await this.getFundingRates();
       
-      if (bybitRate === 0 || binRate === 0) {
+      if (bybitRate === 0 || coinbaseRate === 0) {
         return null; // Invalid rates
       }
 
-      const spread = bybitRate - binRate;
+      const spread = bybitRate - coinbaseRate;
       
       // Store spread in history for volatility calculation
       this.addSpreadToHistory(spread);
@@ -173,18 +229,18 @@ export class FundingRateMonitor extends EventEmitter {
         : threshold;
       
       if (Math.abs(spread) > dynamicThreshold) {
-        // If Bybit rate > Bin rate, long Bybit (collect positive funding), short Bin
+        // If Bybit rate > Coinbase rate, long Bybit (collect positive funding), short Coinbase
         if (spread > 0) {
           return { 
             sideBybit: 'LONG', 
-            sideBin: 'SHORT',
+            sideCoinbase: 'SHORT',
             spread,
             dynamicThreshold
           };
         } else {
           return { 
             sideBybit: 'SHORT', 
-            sideBin: 'LONG',
+            sideCoinbase: 'LONG',
             spread,
             dynamicThreshold
           };
@@ -257,9 +313,6 @@ export class FundingRateMonitor extends EventEmitter {
    * Clean up connections
    */
   public async close(): Promise<void> {
-    if (this.binanceWS) {
-      this.binanceWS.close();
-    }
     // Bybit WS client will be closed automatically
   }
 }

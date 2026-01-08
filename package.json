@@ -1,7 +1,7 @@
 {
   "name": "funding-rate-arb-bot",
   "version": "2.0.0",
-  "description": "Funding Rate Arbitrage Bot for Bybit/Apex and Binance",
+  "description": "Funding Rate Arbitrage Bot for Bybit/Apex and Coinbase Perpetual Futures",
   "main": "dist/auto_trading_bot.js",
   "scripts": {
     "build": "tsc",
@@ -18,7 +18,8 @@
     "bot",
     "typescript",
     "bybit",
-    "binance",
+    "coinbase",
+    "coinbase-perps",
     "apex",
     "apex-omni",
     "starkex",
@@ -34,7 +35,6 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@binance/connector": "^3.0.0",
     "@types/ws": "^8.18.1",
     "axios": "^1.13.2",
     "bybit-api": "^3.10.0",

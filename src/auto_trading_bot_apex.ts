@@ -2,7 +2,7 @@
  * Auto Trading Bot with Apex Omni Support
  * 
  * This version of the bot supports using Apex Omni as Exchange A
- * instead of Bybit, while keeping Binance as Exchange B.
+ * instead of Bybit, while using Coinbase Perpetual Futures as Exchange B.
  * 
  * To use:
  * - Set USE_APEX=true in .env to use Apex
@@ -68,12 +68,12 @@ class AutoTradingBot {
     console.log('🚀 Funding Rate Arbitrage Bot');
     console.log('='.repeat(60));
     console.log('Strategy: Delta-Neutral Funding Rate Arbitrage');
-    console.log(`Exchanges: ${this.exchangeName} ${this.useApex ? '(DEX)' : '(CEX)'} ↔ Binance (CEX)`);
+    console.log(`Exchanges: ${this.exchangeName} ${this.useApex ? '(DEX)' : '(CEX)'} ↔ Coinbase Perpetual Futures (CEX)`);
     console.log('Asset: BTC Perpetual Futures');
     console.log('='.repeat(60));
     console.log('\n📊 Configuration:');
     console.log(`  Exchange A:             ${this.exchangeName}`);
-    console.log(`  Exchange B:             Binance`);
+    console.log(`  Exchange B:             Coinbase Perpetual Futures`);
     console.log(`  Min Funding Spread:     ${(this.minFundingSpread * 100).toFixed(3)}%`);
     console.log(`  Max Position Size:      $${this.maxPositionNotional.toLocaleString()}`);
     console.log(`  Max Daily Notional:     $${this.maxDailyNotional.toLocaleString()}`);
@@ -132,14 +132,14 @@ class AutoTradingBot {
       
       if (this.useApex) {
         const apexMonitor = this.fundingMonitor as ApexFundingMonitor;
-        const { apexRate, binRate } = await apexMonitor.getFundingRates();
-        rates = { exchangeARate: apexRate, binRate };
-        spread = apexRate - binRate;
+        const { apexRate, coinbaseRate } = await apexMonitor.getFundingRates();
+        rates = { exchangeARate: apexRate, coinbaseRate };
+        spread = apexRate - coinbaseRate;
       } else {
         const bybitMonitor = this.fundingMonitor as FundingRateMonitor;
-        const { bybitRate, binRate } = await bybitMonitor.getFundingRates();
-        rates = { exchangeARate: bybitRate, binRate };
-        spread = bybitRate - binRate;
+        const { bybitRate, coinbaseRate } = await bybitMonitor.getFundingRates();
+        rates = { exchangeARate: bybitRate, coinbaseRate };
+        spread = bybitRate - coinbaseRate;
       }
       
       const spreadPct = (Math.abs(spread) * 100).toFixed(4);
@@ -147,7 +147,7 @@ class AutoTradingBot {
       console.log('─'.repeat(60));
       console.log(`[${new Date().toISOString()}] Funding Rate Check`);
       console.log(`  ${this.exchangeName}:${' '.repeat(Math.max(1, 13 - this.exchangeName.length))}${(rates.exchangeARate * 100).toFixed(4)}%`);
-      console.log(`  Binance:     ${(rates.binRate * 100).toFixed(4)}%`);
+      console.log(`  Binance:     ${(rates.coinbaseRate * 100).toFixed(4)}%`);
       console.log(`  Spread:      ${(spread * 100).toFixed(4)}% (${spreadPct}%)`);
       
       if (this.useDynamicSpread) {
@@ -228,9 +228,9 @@ class AutoTradingBot {
     console.log(`  Entry Time: ${position.entryTime.toISOString()}`);
     
     if (this.useApex) {
-      console.log(`  Apex Side: ${position.bybitSide}, Bin Side: ${position.binSide}`);
+      console.log(`  Apex Side: ${position.bybitSide}, Coinbase Side: ${position.coinbaseSide}`);
     } else {
-      console.log(`  Bybit Side: ${position.bybitSide}, Bin Side: ${position.binSide}`);
+      console.log(`  Bybit Side: ${position.bybitSide}, Coinbase Side: ${position.coinbaseSide}`);
     }
     
     console.log(`  Notional: $${position.notional.toLocaleString()}`);
@@ -249,7 +249,7 @@ class AutoTradingBot {
       console.log('1. Close Bybit position via SDK');
     }
     
-    console.log('2. Close Binance position via API');
+    console.log('2. Close Coinbase position via API');
     console.log('3. Calculate realized P&L and funding payments');
     console.log('4. Log final position metrics');
     console.log('─'.repeat(60) + '\n');
@@ -266,10 +266,10 @@ class AutoTradingBot {
     
     if (this.useApex) {
       console.log(`Apex:              ${opportunity.sideApex}`);
-      console.log(`Binance:           ${opportunity.sideBin}`);
+      console.log(`Binance:           ${opportunity.sideCoinbase}`);
     } else {
       console.log(`Bybit:             ${opportunity.sideBybit}`);
-      console.log(`Binance:           ${opportunity.sideBin}`);
+      console.log(`Binance:           ${opportunity.sideCoinbase}`);
     }
     
     console.log(`Notional Size:     $${positionSize.toLocaleString()}`);
@@ -283,14 +283,14 @@ class AutoTradingBot {
       id: `pos-${Date.now()}`,
       symbol: process.env.SYMBOL || 'BTCUSDT',
       bybitSide: this.useApex ? opportunity.sideApex : opportunity.sideBybit,
-      binSide: opportunity.sideBin,
+      coinbaseSide: opportunity.sideCoinbase,
       notional: positionSize,
       leverage: this.leverage,
       entryTime: new Date(),
       bybitEntryPrice: 0,
-      binEntryPrice: 0,
+      coinbaseEntryPrice: 0,
       bybitFundingRate: 0,
-      binFundingRate: 0,
+      coinbaseFundingRate: 0,
       spreadAtEntry: opportunity.spread,
       status: 'active'
     };
@@ -320,7 +320,7 @@ class AutoTradingBot {
     }
     
     console.log('4. Place market orders on Binance:');
-    console.log('   - Use binanceClient.futuresOrder()');
+    console.log('   - Use coinbaseClient.placeOrder()');
     console.log('5. Store actual entry prices and funding rates');
     console.log('6. Monitor position for P&L tracking');
     console.log('7. Implement auto-close when conditions are met');

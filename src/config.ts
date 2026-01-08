@@ -105,14 +105,14 @@ export interface Position {
   id: string;
   symbol: string;
   bybitSide: 'LONG' | 'SHORT';
-  binSide: 'LONG' | 'SHORT';
+  coinbaseSide: 'LONG' | 'SHORT';
   notional: number;
   leverage: number;
   entryTime: Date;
   bybitEntryPrice: number;
-  binEntryPrice: number;
+  coinbaseEntryPrice: number;
   bybitFundingRate: number;
-  binFundingRate: number;
+  coinbaseFundingRate: number;
   spreadAtEntry: number;
   status: 'active' | 'closed';
   closeTime?: Date;

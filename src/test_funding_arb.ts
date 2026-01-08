@@ -127,14 +127,14 @@ class TestPositionManager {
       id: `test-pos-${Date.now()}`,
       symbol: 'BTCUSDT',
       bybitSide: opportunity.sideBybit,
-      binSide: opportunity.sideBin,
+      coinbaseSide: opportunity.sideCoinbase,
       notional: positionSize,
       leverage: DEFAULTS.LEVERAGE,
       entryTime: new Date(),
       bybitEntryPrice: 45000, // Mock price
-      binEntryPrice: 45010, // Mock price
+      coinbaseEntryPrice: 45010, // Mock price
       bybitFundingRate: 0.0003,
-      binFundingRate: 0.0001,
+      coinbaseFundingRate: 0.0001,
       spreadAtEntry: opportunity.spread,
       status: 'active'
     };
@@ -266,7 +266,7 @@ async function runTests() {
   
   if (opportunity1) {
     console.log(`✅ PASS: Opportunity detected! (${duration1.toFixed(3)}ms)`);
-    console.log(`   Strategy: ${opportunity1.sideBybit} on Bybit, ${opportunity1.sideBin} on Binance`);
+    console.log(`   Strategy: ${opportunity1.sideBybit} on Bybit, ${opportunity1.sideBin} on Coinbase`);
   } else {
     console.log(`❌ FAIL: No opportunity detected (expected opportunity)`);
   }
@@ -397,14 +397,14 @@ async function runTests() {
     id: 'test-old-pos',
     symbol: 'BTCUSDT',
     bybitSide: 'LONG',
-    binSide: 'SHORT',
+    coinbaseSide: 'SHORT',
     notional: 10000,
     leverage: 2,
     entryTime: new Date(Date.now() - (DEFAULTS.AUTO_CLOSE_INTERVAL + 100) * 1000), // 8h + 100s ago
     bybitEntryPrice: 45000,
-    binEntryPrice: 45010,
+    coinbaseEntryPrice: 45010,
     bybitFundingRate: 0.0003,
-    binFundingRate: 0.0001,
+    coinbaseFundingRate: 0.0001,
     spreadAtEntry: 0.0002,
     status: 'active'
   };
@@ -442,7 +442,7 @@ async function runTests() {
   
   if (opportunity6 && opportunity6.sideBybit === 'SHORT' && opportunity6.sideBin === 'LONG') {
     console.log(`✅ PASS: Correct strategy for negative spread`);
-    console.log(`   Strategy: ${opportunity6.sideBybit} on Bybit, ${opportunity6.sideBin} on Binance`);
+    console.log(`   Strategy: ${opportunity6.sideBybit} on Bybit, ${opportunity6.sideBin} on Coinbase`);
   } else if (opportunity6) {
     console.log(`❌ FAIL: Wrong strategy detected`);
   } else {
