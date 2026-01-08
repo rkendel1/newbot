@@ -87,17 +87,51 @@ export class ApexFundingMonitor extends EventEmitter {
 
   /**
    * Convert Binance symbol format to Apex format
-   * Examples:
+   * 
+   * Apex uses hyphenated format with USDC as quote currency:
    * - BTCUSDT -> BTC-USDC
    * - ETHUSDT -> ETH-USDC
+   * - SOLUSDT -> SOL-USDC
    * 
-   * @param binanceSymbol - Symbol in Binance format
+   * @param binanceSymbol - Symbol in Binance format (e.g., 'BTCUSDT')
+   * @returns Symbol in Apex format (e.g., 'BTC-USDC')
    */
   private convertToApexSymbol(binanceSymbol: string): string {
-    // Remove 'USDT' suffix and add '-USDC'
-    // Apex typically uses USDC as the quote currency
-    const base = binanceSymbol.replace(/USDT$/, '');
-    return `${base}-USDC`;
+    // Mapping table for known pairs
+    const symbolMap: Record<string, string> = {
+      'BTCUSDT': 'BTC-USDC',
+      'ETHUSDT': 'ETH-USDC',
+      'SOLUSDT': 'SOL-USDC',
+      'AVAXUSDT': 'AVAX-USDC',
+      'BNBUSDT': 'BNB-USDC',
+      'ADAUSDT': 'ADA-USDC',
+      'DOTUSDT': 'DOT-USDC',
+      'MATICUSDT': 'MATIC-USDC',
+    };
+    
+    // Check if we have an explicit mapping
+    if (symbolMap[binanceSymbol]) {
+      return symbolMap[binanceSymbol];
+    }
+    
+    // Fallback: Try to extract base currency from USDT pair
+    if (binanceSymbol.endsWith('USDT')) {
+      const base = binanceSymbol.replace(/USDT$/, '');
+      console.warn(
+        `⚠️  No explicit mapping for ${binanceSymbol}, using fallback conversion: ${base}-USDC`
+      );
+      console.warn(
+        `   Verify this is correct on Apex exchange. Add to symbolMap if needed.`
+      );
+      return `${base}-USDC`;
+    }
+    
+    // If it doesn't end with USDT, we can't convert it
+    throw new Error(
+      `Cannot convert symbol ${binanceSymbol} to Apex format. ` +
+      `Apex uses USDC pairs (e.g., BTC-USDC). ` +
+      `Please add ${binanceSymbol} to the symbol mapping table in apex_funding_monitor.ts`
+    );
   }
 
   start() {

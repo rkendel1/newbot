@@ -228,18 +228,37 @@ export class ApexExchange {
    * @returns Funding rate as a decimal (e.g., 0.0001 = 0.01%)
    */
   async getFundingRate(symbol: string): Promise<number> {
-    const data = await this.get<any>('/funding', { symbol });
-    
-    // Adjust field name based on actual Apex API response
-    const rate = data.currentFundingRate || data.fundingRate;
-    
-    if (rate === undefined || rate === null) {
+    try {
+      const data = await this.get<any>('/funding', { symbol });
+      
+      // Try different possible field names in Apex API response
+      const rate = data.currentFundingRate ?? data.fundingRate ?? data.rate;
+      
+      if (rate === undefined || rate === null) {
+        console.error(`No funding rate field found in Apex API response for ${symbol}`);
+        console.error('Response structure:', JSON.stringify(data, null, 2));
+        throw new ApexAPIError(
+          `No funding rate in response for ${symbol}. Expected fields: currentFundingRate, fundingRate, or rate`
+        );
+      }
+      
+      const parsedRate = parseFloat(String(rate));
+      
+      if (isNaN(parsedRate)) {
+        throw new ApexAPIError(
+          `Invalid funding rate value for ${symbol}: ${rate}`
+        );
+      }
+      
+      return parsedRate;
+    } catch (error: any) {
+      if (error instanceof ApexAPIError) {
+        throw error;
+      }
       throw new ApexAPIError(
-        `No funding rate in response for ${symbol}: ${JSON.stringify(data)}`
+        `Failed to fetch funding rate for ${symbol}: ${error.message || String(error)}`
       );
     }
-    
-    return parseFloat(String(rate));
   }
 
   /**
