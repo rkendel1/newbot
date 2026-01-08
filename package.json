@@ -38,6 +38,8 @@
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "ethers": "^5.7.2",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "hyperliquid": "^1.7.7",
+    "@binance/connector": "^3.0.0"
   }
 }
