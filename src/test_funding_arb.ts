@@ -14,7 +14,7 @@ import { DEFAULTS, Position, SpreadHistoryEntry } from './config';
 
 // Mock data for testing
 interface MockFundingRates {
-  hlRate: number;
+  bybitRate: number;
   binRate: number;
   timestamp: Date;
 }
@@ -30,7 +30,7 @@ class MockFundingRateMonitor {
   // Simulate getting funding rates
   async getFundingRates(mockData: MockFundingRates) {
     return {
-      hlRate: mockData.hlRate,
+      bybitRate: mockData.bybitRate,
       binRate: mockData.binRate
     };
   }
@@ -70,13 +70,13 @@ class MockFundingRateMonitor {
 
   // Detect opportunity
   async detectOpportunity(mockData: MockFundingRates, threshold: number) {
-    const { hlRate, binRate } = await this.getFundingRates(mockData);
+    const { bybitRate, binRate } = await this.getFundingRates(mockData);
     
-    if (hlRate === 0 || binRate === 0) {
+    if (bybitRate === 0 || binRate === 0) {
       return null;
     }
 
-    const spread = hlRate - binRate;
+    const spread = bybitRate - binRate;
     this.addSpreadToHistory(spread);
     
     const dynamicThreshold = this.useDynamicSpread 
@@ -86,14 +86,14 @@ class MockFundingRateMonitor {
     if (Math.abs(spread) > dynamicThreshold) {
       if (spread > 0) {
         return { 
-          sideHl: 'LONG' as const, 
+          sideBybit: 'LONG' as const, 
           sideBin: 'SHORT' as const,
           spread,
           dynamicThreshold
         };
       } else {
         return { 
-          sideHl: 'SHORT' as const, 
+          sideBybit: 'SHORT' as const, 
           sideBin: 'LONG' as const,
           spread,
           dynamicThreshold
@@ -125,15 +125,15 @@ class TestPositionManager {
     
     const position: Position = {
       id: `test-pos-${Date.now()}`,
-      symbol: 'BTC',
-      hlSide: opportunity.sideHl,
+      symbol: 'BTCUSDT',
+      bybitSide: opportunity.sideBybit,
       binSide: opportunity.sideBin,
       notional: positionSize,
       leverage: DEFAULTS.LEVERAGE,
       entryTime: new Date(),
-      hlEntryPrice: 45000, // Mock price
+      bybitEntryPrice: 45000, // Mock price
       binEntryPrice: 45010, // Mock price
-      hlFundingRate: 0.0003,
+      bybitFundingRate: 0.0003,
       binFundingRate: 0.0001,
       spreadAtEntry: opportunity.spread,
       status: 'active'
@@ -249,13 +249,13 @@ async function runTests() {
   const monitor1 = new MockFundingRateMonitor(false);
   
   const mockData1: MockFundingRates = {
-    hlRate: 0.0005,  // 0.05% per 8h
+    bybitRate: 0.0005,  // 0.05% per 8h
     binRate: 0.0002, // 0.02% per 8h
     timestamp: new Date()
   };
   
-  const spread1 = mockData1.hlRate - mockData1.binRate;
-  console.log(`Hyperliquid Rate: ${(mockData1.hlRate * 100).toFixed(4)}%`);
+  const spread1 = mockData1.bybitRate - mockData1.binRate;
+  console.log(`Bybit Rate: ${(mockData1.bybitRate * 100).toFixed(4)}%`);
   console.log(`Binance Rate:     ${(mockData1.binRate * 100).toFixed(4)}%`);
   console.log(`Spread:           ${(spread1 * 100).toFixed(4)}%`);
   console.log(`Threshold:        ${(DEFAULTS.MIN_FUNDING_SPREAD * 100).toFixed(4)}%`);
@@ -266,7 +266,7 @@ async function runTests() {
   
   if (opportunity1) {
     console.log(`✅ PASS: Opportunity detected! (${duration1.toFixed(3)}ms)`);
-    console.log(`   Strategy: ${opportunity1.sideHl} on HL, ${opportunity1.sideBin} on Binance`);
+    console.log(`   Strategy: ${opportunity1.sideBybit} on HL, ${opportunity1.sideBin} on Binance`);
   } else {
     console.log(`❌ FAIL: No opportunity detected (expected opportunity)`);
   }
@@ -278,13 +278,13 @@ async function runTests() {
   const monitor2 = new MockFundingRateMonitor(false);
   
   const mockData2: MockFundingRates = {
-    hlRate: 0.00015,  // 0.015% per 8h
+    bybitRate: 0.00015,  // 0.015% per 8h
     binRate: 0.00012, // 0.012% per 8h
     timestamp: new Date()
   };
   
-  const spread2 = mockData2.hlRate - mockData2.binRate;
-  console.log(`Hyperliquid Rate: ${(mockData2.hlRate * 100).toFixed(4)}%`);
+  const spread2 = mockData2.bybitRate - mockData2.binRate;
+  console.log(`Bybit Rate: ${(mockData2.bybitRate * 100).toFixed(4)}%`);
   console.log(`Binance Rate:     ${(mockData2.binRate * 100).toFixed(4)}%`);
   console.log(`Spread:           ${(spread2 * 100).toFixed(4)}%`);
   console.log(`Threshold:        ${(DEFAULTS.MIN_FUNDING_SPREAD * 100).toFixed(4)}%`);
@@ -318,12 +318,12 @@ async function runTests() {
   console.log(`Dynamic Threshold:     ${(dynamicThreshold * 100).toFixed(4)}%`);
   
   const mockData3: MockFundingRates = {
-    hlRate: 0.00035,
+    bybitRate: 0.00035,
     binRate: 0.00010,
     timestamp: new Date()
   };
   
-  const spread3 = mockData3.hlRate - mockData3.binRate;
+  const spread3 = mockData3.bybitRate - mockData3.binRate;
   console.log(`Current Spread:        ${(spread3 * 100).toFixed(4)}%`);
   
   const opportunity3 = await monitor3.detectOpportunity(mockData3, DEFAULTS.MIN_FUNDING_SPREAD);
@@ -348,7 +348,7 @@ async function runTests() {
   console.log();
   
   // Open first position
-  const mockOpp1 = { sideHl: 'LONG', sideBin: 'SHORT', spread: 0.0003, dynamicThreshold: 0.0002 };
+  const mockOpp1 = { sideBybit: 'LONG', sideBin: 'SHORT', spread: 0.0003, dynamicThreshold: 0.0002 };
   console.log('Opening Position 1...');
   
   const endTimerPos = perfMonitor.startTimer('Position Size Calculation');
@@ -395,15 +395,15 @@ async function runTests() {
   // Create a position with backdated entry time
   const oldPosition: Position = {
     id: 'test-old-pos',
-    symbol: 'BTC',
-    hlSide: 'LONG',
+    symbol: 'BTCUSDT',
+    bybitSide: 'LONG',
     binSide: 'SHORT',
     notional: 10000,
     leverage: 2,
     entryTime: new Date(Date.now() - (DEFAULTS.AUTO_CLOSE_INTERVAL + 100) * 1000), // 8h + 100s ago
-    hlEntryPrice: 45000,
+    bybitEntryPrice: 45000,
     binEntryPrice: 45010,
-    hlFundingRate: 0.0003,
+    bybitFundingRate: 0.0003,
     binFundingRate: 0.0001,
     spreadAtEntry: 0.0002,
     status: 'active'
@@ -428,21 +428,21 @@ async function runTests() {
   const monitor6 = new MockFundingRateMonitor(false);
   
   const mockData6: MockFundingRates = {
-    hlRate: 0.0001,   // 0.01% per 8h (lower)
+    bybitRate: 0.0001,   // 0.01% per 8h (lower)
     binRate: 0.0004,  // 0.04% per 8h (higher)
     timestamp: new Date()
   };
   
-  const spread6 = mockData6.hlRate - mockData6.binRate;
-  console.log(`Hyperliquid Rate: ${(mockData6.hlRate * 100).toFixed(4)}%`);
+  const spread6 = mockData6.bybitRate - mockData6.binRate;
+  console.log(`Bybit Rate: ${(mockData6.bybitRate * 100).toFixed(4)}%`);
   console.log(`Binance Rate:     ${(mockData6.binRate * 100).toFixed(4)}%`);
   console.log(`Spread:           ${(spread6 * 100).toFixed(4)}%`);
   
   const opportunity6 = await monitor6.detectOpportunity(mockData6, DEFAULTS.MIN_FUNDING_SPREAD);
   
-  if (opportunity6 && opportunity6.sideHl === 'SHORT' && opportunity6.sideBin === 'LONG') {
+  if (opportunity6 && opportunity6.sideBybit === 'SHORT' && opportunity6.sideBin === 'LONG') {
     console.log(`✅ PASS: Correct strategy for negative spread`);
-    console.log(`   Strategy: ${opportunity6.sideHl} on HL, ${opportunity6.sideBin} on Binance`);
+    console.log(`   Strategy: ${opportunity6.sideBybit} on HL, ${opportunity6.sideBin} on Binance`);
   } else if (opportunity6) {
     console.log(`❌ FAIL: Wrong strategy detected`);
   } else {
@@ -465,7 +465,7 @@ async function runTests() {
   
   for (let i = 0; i < 100; i++) {
     const mockDataStress: MockFundingRates = {
-      hlRate: 0.0002 + Math.random() * 0.0004,
+      bybitRate: 0.0002 + Math.random() * 0.0004,
       binRate: 0.0001 + Math.random() * 0.0003,
       timestamp: new Date()
     };

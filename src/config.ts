@@ -3,7 +3,7 @@
  * 
  * This file contains all risk management parameters, thresholds, and
  * operational settings for executing delta-neutral funding rate arbitrage
- * between Hyperliquid (DEX) and Binance (CEX).
+ * between Bybit and Binance.
  */
 
 export const DEFAULTS = {
@@ -104,14 +104,14 @@ export function parseCliArgs(args: string[]): StrategyConfig {
 export interface Position {
   id: string;
   symbol: string;
-  hlSide: 'LONG' | 'SHORT';
+  bybitSide: 'LONG' | 'SHORT';
   binSide: 'LONG' | 'SHORT';
   notional: number;
   leverage: number;
   entryTime: Date;
-  hlEntryPrice: number;
+  bybitEntryPrice: number;
   binEntryPrice: number;
-  hlFundingRate: number;
+  bybitFundingRate: number;
   binFundingRate: number;
   spreadAtEntry: number;
   status: 'active' | 'closed';
