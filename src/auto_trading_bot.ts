@@ -1,4 +1,3 @@
-import { Wallet } from '@ethersproject/wallet';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { FundingRateMonitor } from './funding_rate_monitor';
@@ -45,7 +44,7 @@ class AutoTradingBot {
         console.log('🚀 Funding Rate Arbitrage Bot');
         console.log('='.repeat(60));
         console.log('Strategy: Delta-Neutral Funding Rate Arbitrage');
-        console.log('Exchanges: Hyperliquid (DEX) ↔ Binance (CEX)');
+        console.log('Exchanges: Bybit (CEX) ↔ Binance (CEX)');
         console.log('Asset: BTC Perpetual Futures');
         console.log('='.repeat(60));
         console.log('\n📊 Configuration:');
@@ -60,6 +59,10 @@ class AutoTradingBot {
         console.log('='.repeat(60));
         
         this.isRunning = true;
+
+        // Start WebSocket monitoring
+        console.log('\n🔌 Starting real-time funding rate monitoring...\n');
+        this.fundingMonitor.start();
 
         // Initial funding rate check
         console.log('\n🔍 Performing initial funding rate check...\n');
@@ -88,13 +91,13 @@ class AutoTradingBot {
 
     private async checkFundingOpportunity() {
         try {
-            const { hlRate, binRate } = await this.fundingMonitor.getFundingRates();
-            const spread = hlRate - binRate;
+            const { bybitRate, binRate } = await this.fundingMonitor.getFundingRates();
+            const spread = bybitRate - binRate;
             const spreadPct = (Math.abs(spread) * 100).toFixed(4);
             
             console.log('─'.repeat(60));
             console.log(`[${new Date().toISOString()}] Funding Rate Check`);
-            console.log(`  Hyperliquid: ${(hlRate * 100).toFixed(4)}%`);
+            console.log(`  Bybit:       ${(bybitRate * 100).toFixed(4)}%`);
             console.log(`  Binance:     ${(binRate * 100).toFixed(4)}%`);
             console.log(`  Spread:      ${(spread * 100).toFixed(4)}% (${spreadPct}%)`);
             
@@ -180,7 +183,7 @@ class AutoTradingBot {
         console.log(`🔒 Closing Position: ${position.id}`);
         console.log(`  Reason: ${reason}`);
         console.log(`  Entry Time: ${position.entryTime.toISOString()}`);
-        console.log(`  HL Side: ${position.hlSide}, Bin Side: ${position.binSide}`);
+        console.log(`  Bybit Side: ${position.bybitSide}, Bin Side: ${position.binSide}`);
         console.log(`  Notional: $${position.notional.toLocaleString()}`);
         console.log('─'.repeat(60));
         
@@ -190,14 +193,14 @@ class AutoTradingBot {
         
         console.log('⚠️  IMPLEMENTATION NOTE:');
         console.log('To complete position closing, implement:');
-        console.log('1. Close Hyperliquid position via SDK');
+        console.log('1. Close Bybit position via SDK');
         console.log('2. Close Binance position via API');
         console.log('3. Calculate realized P&L and funding payments');
         console.log('4. Log final position metrics');
         console.log('─'.repeat(60) + '\n');
     }
 
-    private async executeFundingArb(opportunity: { sideHl: 'LONG' | 'SHORT', sideBin: 'LONG' | 'SHORT', spread: number, dynamicThreshold: number }) {
+    private async executeFundingArb(opportunity: { sideBybit: 'LONG' | 'SHORT', sideBin: 'LONG' | 'SHORT', spread: number, dynamicThreshold: number }) {
         console.log('\n' + '='.repeat(60));
         console.log('💰 EXECUTING FUNDING ARBITRAGE TRADE');
         console.log('='.repeat(60));
@@ -205,7 +208,7 @@ class AutoTradingBot {
         const positionSize = this.calculatePositionSize();
         
         console.log(`Strategy:          Delta-neutral hedged position`);
-        console.log(`Hyperliquid:       ${opportunity.sideHl}`);
+        console.log(`Bybit:             ${opportunity.sideBybit}`);
         console.log(`Binance:           ${opportunity.sideBin}`);
         console.log(`Notional Size:     $${positionSize.toLocaleString()}`);
         console.log(`Leverage:          ${this.leverage}x`);
@@ -216,15 +219,15 @@ class AutoTradingBot {
         // Create position record
         const position: Position = {
             id: `pos-${Date.now()}`,
-            symbol: 'BTC',
-            hlSide: opportunity.sideHl,
+            symbol: process.env.SYMBOL || 'BTCUSDT',
+            bybitSide: opportunity.sideBybit,
             binSide: opportunity.sideBin,
             notional: positionSize,
             leverage: this.leverage,
             entryTime: new Date(),
-            hlEntryPrice: 0, // Would be set from actual order execution
+            bybitEntryPrice: 0, // Would be set from actual order execution
             binEntryPrice: 0, // Would be set from actual order execution
-            hlFundingRate: 0, // Would be set from fundingMonitor
+            bybitFundingRate: 0, // Would be set from fundingMonitor
             binFundingRate: 0, // Would be set from fundingMonitor
             spreadAtEntry: opportunity.spread,
             status: 'active'
@@ -243,10 +246,10 @@ class AutoTradingBot {
         console.log('');
         console.log('1. Fetch current BTC/USDT price from both exchanges');
         console.log('2. Calculate contract sizes for equal notional value');
-        console.log('3. Place market orders on Hyperliquid:');
-        console.log('   - Use hlClient.exchange.placeOrder()');
+        console.log('3. Place market orders on Bybit:');
+        console.log('   - Use bybitRest.submitOrder()');
         console.log('4. Place market orders on Binance:');
-        console.log('   - Use binanceClient.futuresMarketOrder()');
+        console.log('   - Use binanceClient.futuresOrder()');
         console.log('5. Store actual entry prices and funding rates');
         console.log('6. Monitor position for P&L tracking');
         console.log('7. Implement auto-close when conditions are met');
@@ -260,6 +263,7 @@ class AutoTradingBot {
         this.isRunning = false;
         console.log('\n🛑 Shutting down bot...');
         console.log(`Active positions: ${this.activePositions.filter(p => p.status === 'active').length}`);
+        this.fundingMonitor.close();
         console.log('Bot stopped');
     }
 }
@@ -277,4 +281,3 @@ async function main() {
 }
 
 main().catch(console.error);
-

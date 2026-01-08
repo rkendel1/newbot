@@ -1,7 +1,7 @@
 {
   "name": "funding-rate-arb-bot",
   "version": "2.0.0",
-  "description": "Funding Rate Arbitrage Bot for Hyperliquid and Binance",
+  "description": "Funding Rate Arbitrage Bot for Bybit and Binance",
   "main": "dist/auto_trading_bot.js",
   "scripts": {
     "build": "tsc",
@@ -16,7 +16,7 @@
     "trading",
     "bot",
     "typescript",
-    "hyperliquid",
+    "bybit",
     "binance",
     "defi"
   ],
@@ -29,11 +29,11 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@ethersproject/wallet": "^5.8.0",
+    "@binance/connector": "^3.0.0",
     "@types/ws": "^8.18.1",
     "axios": "^1.13.2",
+    "bybit-api": "^3.10.0",
     "dotenv": "^17.2.3",
-    "hyperliquid": "^1.7.7",
-    "@binance/connector": "^3.0.0"
+    "ws": "^8.18.0"
   }
 }

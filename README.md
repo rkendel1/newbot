@@ -1,11 +1,11 @@
 # Funding Rate Arbitrage Bot
 
-A fully automated trading bot that exploits funding rate differences between Hyperliquid (DEX) and Binance (CEX) perpetual futures markets to generate consistent returns through delta-neutral arbitrage.
+A fully automated trading bot that exploits funding rate differences between Bybit (CEX) and Binance (CEX) perpetual futures markets to generate consistent returns through delta-neutral arbitrage.
 
 ## 📊 What This Bot Does
 
 The bot monitors funding rates on BTC perpetual futures across two exchanges:
-- **Hyperliquid** (Decentralized Exchange)
+- **Bybit** (Centralized Exchange)
 - **Binance** (Centralized Exchange)
 
 When the funding rate spread exceeds a threshold, it opens **delta-neutral positions**:
@@ -24,12 +24,12 @@ This creates a market-neutral position that profits from the rate difference whi
 ### Example Trade
 
 ```
-Hyperliquid Funding Rate: +0.15% per 8 hours
+Bybit Funding Rate: +0.15% per 8 hours
 Binance Funding Rate:     +0.05% per 8 hours
 Spread:                   0.10% (exceeds 0.02% threshold)
 
 Action:
-- LONG  $10,000 BTC on Hyperliquid (collect +$15.00)
+- LONG  $10,000 BTC on Bybit (collect +$15.00)
 - SHORT $10,000 BTC on Binance    (pay    -$5.00)
 
 Net profit per 8h: $10.00 (0.10% return)
@@ -65,12 +65,12 @@ Risk: Market-neutral (hedged)
 
 ### Do I Need a Crypto Wallet?
 
-**YES** - You need an Ethereum-compatible wallet for Hyperliquid. Here's what you need:
+**NO** - Both exchanges are centralized and only require API keys. No crypto wallet needed.
 
-**For Hyperliquid (DEX):**
-- ✅ Ethereum wallet (MetaMask, Rabby, etc.)
-- ✅ You control the private key
-- ✅ Used to sign transactions on Hyperliquid
+**For Bybit (CEX):**
+- ❌ No crypto wallet needed
+- ✅ Just a Bybit account with API keys
+- ✅ Funds stored on Bybit (centralized)
 
 **For Binance (CEX):**
 - ❌ No crypto wallet needed
@@ -81,29 +81,27 @@ Risk: Market-neutral (hedged)
 - Basic understanding of cryptocurrency trading
 - Familiarity with perpetual futures
 - Command line/terminal usage
-- Understanding of private keys and wallet security
-- **How to safely store seed phrases and private keys**
+- Understanding of API key security
 
 ### Required Software
 - **Node.js** v16 or higher ([Download](https://nodejs.org/))
 - **npm** (comes with Node.js)
 - **Git** (optional, for cloning repository)
-- **MetaMask** or compatible Ethereum wallet (see Wallet Setup below)
 
 ### Required Capital
 
 **Minimum to Start:**
-- **Hyperliquid**: $500 USDC
+- **Bybit**: $500 USDC
 - **Binance**: $500 USDT  
 - **Total**: $1,000 minimum
 
 **Recommended for Better Performance:**
-- **Hyperliquid**: $2,500 USDC
+- **Bybit**: $2,500 USDC
 - **Binance**: $2,500 USDT
 - **Total**: $5,000
 
 **Optimal for Serious Trading:**
-- **Hyperliquid**: $10,000+ USDC
+- **Bybit**: $10,000+ USDC
 - **Binance**: $10,000+ USDT
 - **Total**: $20,000+
 
@@ -115,240 +113,88 @@ Risk: Market-neutral (hedged)
 
 ---
 
-## Wallet Setup (Step-by-Step for Beginners)
-
-If you've never created a crypto wallet before, follow this guide carefully.
-
-### What is a Crypto Wallet?
-
-A crypto wallet is software that:
-- Stores your **private key** (like a password for your funds)
-- Lets you send and receive cryptocurrency
-- Allows you to interact with decentralized exchanges like Hyperliquid
-
-**Important Concepts:**
-- **Private Key**: A secret code (64 characters) that controls your funds. Never share this.
-- **Seed Phrase**: 12-24 words that can recover your private key. Never share this.
-- **Wallet Address**: Your public address (starts with 0x). Safe to share, like an email address.
-
-### Step-by-Step: Creating a MetaMask Wallet
-
-**MetaMask** is the most popular and beginner-friendly option.
-
-#### 1. Install MetaMask
-
-**For Desktop (Chrome/Firefox/Brave):**
-1. Go to https://metamask.io/
-2. Click **Download**
-3. Select your browser (Chrome, Firefox, Brave, or Edge)
-4. Click **Add to Chrome** (or your browser)
-5. Click **Add Extension**
-6. MetaMask icon appears in browser toolbar
-
-**For Mobile (iOS/Android):**
-1. Open App Store (iOS) or Google Play (Android)
-2. Search "MetaMask"
-3. Download **MetaMask - Blockchain Wallet**
-4. Open the app
-
-#### 2. Create New Wallet
-
-1. Click **Get Started**
-2. Click **Create a New Wallet**
-3. Agree to terms
-4. Create a strong password (8+ characters)
-   - Use letters, numbers, and symbols
-   - Don't use passwords from other sites
-   - Write it down somewhere safe
-5. Click **Create a new wallet**
-
-#### 3. Save Your Secret Recovery Phrase
-
-**🚨 CRITICAL STEP - DO NOT SKIP 🚨**
-
-MetaMask will show you **12 words** (your seed phrase).
-
-**IMPORTANT:**
-- These 12 words control your money
-- Anyone with these words can steal your funds
-- MetaMask cannot help you if you lose them
-- No one from MetaMask will ever ask for these words
-
-**How to Save Your Seed Phrase:**
-
-**Method 1: Paper (Most Secure)**
-1. Get a piece of paper and pen
-2. Write down all 12 words **in order**
-3. Write them clearly and legibly
-4. Double-check each word
-5. Store the paper in a safe place (fireproof safe, safety deposit box)
-6. **Optional**: Make a second copy, store in different location
-
-**Method 2: Password Manager (Convenient but Less Secure)**
-1. Use a reputable password manager (1Password, Bitwarden, LastPass)
-2. Create a secure note titled "MetaMask Seed Phrase"
-3. Copy all 12 words in order
-4. Use strong master password for the password manager
-
-**❌ NEVER:**
-- Screenshot the seed phrase
-- Email it to yourself
-- Store in Google Docs / Dropbox / Cloud
-- Share with anyone (even "MetaMask support")
-- Save in a text file on your computer
-- Take a photo on your phone
-
-**✅ After saving:**
-1. Click **Next**
-2. MetaMask asks you to confirm by selecting words in order
-3. Click the words in the correct sequence
-4. Click **Confirm**
-5. **Done!** You now have a wallet
-
-#### 4. Get Your Wallet Address
-
-1. Click the MetaMask extension icon
-2. You'll see your account name (usually "Account 1")
-3. Below it is your address: `0x1234...5678`
-4. Click the address to copy it
-5. This is your public address - safe to share
-
-**Example Address:**
-```
-0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2
-```
-
-#### 5. Export Your Private Key (for the Bot)
-
-The bot needs your **private key** to trade on your behalf.
-
-**Steps:**
-1. Click MetaMask extension
-2. Click the **three dots** (⋮) next to your account name
-3. Click **Account Details**
-4. Click **Show Private Key**
-5. Enter your MetaMask password
-6. Click **Confirm**
-7. Your private key appears (64 characters after "0x")
-8. Click **Copy** or write it down
-9. **Keep this SECRET** - only put it in the bot's `.env` file
-
-**Example Private Key:**
-```
-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
-```
-
-**🚨 SECURITY WARNING:**
-- Private key = full access to your funds
-- Only share with the bot (in `.env` file)
-- Never post online, email, or share with anyone
-- If someone gets this, they can steal all your money
-
-### Alternative Wallets (Advanced Users)
-
-If you prefer not to use MetaMask:
-
-**Rabby Wallet** (Recommended for experienced users)
-- More DeFi-friendly than MetaMask
-- Better transaction previews
-- Download: https://rabby.io/
-
-**Rainbow Wallet** (Mobile-first)
-- Beautiful, simple interface
-- Great for mobile users
-- iOS: App Store | Android: Google Play
-
-**Coinbase Wallet** (Beginner-friendly)
-- Not the same as Coinbase exchange
-- Easy for Coinbase users
-- Download: https://www.coinbase.com/wallet
-
-**Hardware Wallets** (Most Secure - Advanced)
-- **Ledger Nano S/X**: ~$60-150
-- **Trezor Model T**: ~$200
-- Best for large amounts ($10,000+)
-- Requires extra setup
-
-**All wallets work the same way:**
-1. Install wallet
-2. Create new wallet
-3. Save seed phrase
-4. Export private key
-5. Use private key in bot's `.env` file
-
-### Wallet Security Checklist
-
-Before funding your wallet, ensure:
-
-- ✅ Seed phrase written down and stored safely
-- ✅ Private key saved securely (only in `.env` file)
-- ✅ MetaMask password is strong and unique
-- ✅ You understand: seed phrase = private key = your money
-- ✅ You know where to find your wallet address
-- ✅ You can export your private key when needed
-
-**If you lose your seed phrase AND private key:**
-- ❌ Your funds are **GONE FOREVER**
-- ❌ No one can recover them (not even MetaMask)
-- ❌ There is no "password reset" for crypto
-
-### Ready to Fund?
-
-Once your wallet is set up, proceed to [Account Setup](#account-setup) to fund it and start trading.
-
 ---
 
 ## Account Setup
 
-### 1. Hyperliquid Account Setup
+### 1. Bybit Account Setup
 
-Hyperliquid is a decentralized exchange on Arbitrum L2. You need an Ethereum wallet.
+Bybit is a centralized exchange. You need to create an account and enable derivatives trading.
 
-#### Step 1: Get an Ethereum Wallet
+#### Step 1: Create Bybit Account
 
-**Option A: MetaMask (Recommended)**
-1. Install MetaMask browser extension: https://metamask.io/
-2. Create a new wallet or import existing one
-3. **SAVE YOUR SEED PHRASE SECURELY** (12-24 words)
-4. Export your private key:
-   - Click on the three dots → Account Details → Export Private Key
-   - Enter your password
-   - Copy and save the private key securely
+1. Go to https://www.bybit.com
+2. Sign up with email
+3. Complete KYC verification (required for derivatives trading)
+   - Provide ID (passport/driver's license)
+   - Take selfie
+   - Verification usually takes 15 minutes to 24 hours
 
-**Option B: Other EVM Wallets**
-- Rabby Wallet
-- Rainbow Wallet
-- Coinbase Wallet
-- Any wallet that provides an Ethereum private key
+#### Step 2: Enable Derivatives Trading
 
-#### Step 2: Fund Your Hyperliquid Account
+1. Log into Bybit
+2. Navigate to **Derivatives → USDT Perpetual**
+3. Complete Futures Trading Quiz (if prompted)
+4. Accept Terms of Service for Derivatives
 
-**Method 1: Bridge from Arbitrum (Cheapest)**
-1. Go to https://app.hyperliquid.xyz
-2. Connect your wallet
-3. Click "Bridge" → Bridge USDC from Arbitrum to Hyperliquid
-4. Gas fees: ~$0.50-2.00 on Arbitrum
+#### Step 3: Create API Keys
 
-**Method 2: Direct Deposit via Binance/OKX**
-1. Buy USDC on Binance or OKX
-2. Withdraw USDC to your wallet address on **Arbitrum Network**
-3. Once received on Arbitrum, use Method 1 to bridge to Hyperliquid
+**IMPORTANT: Follow these steps exactly for security**
 
-**Method 3: Native Onramp (Easiest but Higher Fees)**
-1. Go to https://app.hyperliquid.xyz
-2. Use built-in onramp to buy USDC directly
-3. Higher fees (~3-5%) but simplest method
+1. Go to **Account → API Management**
+2. Click **Create New Key**
+3. Choose **System Generated API Key**
+4. Label it: "Funding Arb Bot"
+5. Complete 2FA verification
+6. **Save both keys immediately:**
+   - API Key: `xxxxxxxxxxxxx`
+   - Secret Key: `xxxxxxxxxxxxx`
+   - ⚠️ Secret key is only shown ONCE - save it now!
+
+7. **Configure API Permissions:**
+   - ✅ **Enable Read**
+   - ✅ **Enable Contract Trade** (for derivatives)
+   - ❌ Disable Spot Trading
+   - ❌ Disable Withdrawals (for security)
+   
+8. **IP Access (Optional but Recommended):**
+   - Select "Restrict access to trusted IPs"
+   - Add your server/home IP address
+   - This prevents API key use from other locations
+
+9. Click **Confirm**
+
+#### Step 4: Fund Your Bybit Derivatives Account
+
+**Deposit USDT:**
+1. Navigate to **Assets → Deposit**
+2. Select **USDT**
+3. Choose network (TRC20 for lowest fees, ERC20 for Ethereum)
+4. Copy your deposit address
+5. Send USDT from your exchange/wallet
+6. Wait for confirmations (5-10 minutes)
+
+**Transfer to Derivatives Wallet:**
+1. Go to **Assets → Transfer**
+2. From: Spot Wallet → To: Derivatives
+3. Select USDT
+4. Amount: Enter USDT amount
+5. Confirm transfer
 
 **Required Amounts:**
-- **Minimum**: $500 USDC (allows ~$1,000 position with 2x leverage)
-- **Recommended**: $2,500 USDC (allows $5,000 positions)
-- **Optimal**: $5,000+ USDC (allows full $10,000 positions)
+- **Minimum**: $500 USDT (allows ~$1,000 position with 2x leverage)
+- **Recommended**: $2,500 USDT (allows $5,000 positions)
+- **Optimal**: $5,000+ USDT (allows full $10,000 positions)
 
-#### Step 3: Test Your Setup
-1. Visit https://app.hyperliquid.xyz
-2. Connect your wallet
-3. Verify your USDC balance shows up
-4. Try a small test trade (optional)
+#### Step 5: Verify API Setup
+
+Test your API keys work:
+```bash
+curl -X GET "https://api.bybit.com/v5/account/wallet-balance?accountType=CONTRACT" \
+  -H "X-BAPI-API-KEY: your_api_key_here"
+```
+
+Should return your derivatives account balance.
 
 ---
 
@@ -436,14 +282,14 @@ Should return your futures account balance.
 
 ### 3. Funding Requirements Summary
 
-| Capital Level | Hyperliquid (USDC) | Binance (USDT) | Max Position Size | Positions/Day |
+| Capital Level | Bybit (USDC) | Binance (USDT) | Max Position Size | Positions/Day |
 |---------------|-------------------|----------------|-------------------|---------------|
 | **Minimum**   | $500              | $500           | $2,000            | 1-2           |
 | **Recommended** | $2,500          | $2,500         | $10,000           | 2-3           |
 | **Optimal**   | $5,000+           | $5,000+        | $20,000+          | 5+            |
 
 **Why Equal Funding?**
-The bot opens equal positions on both exchanges. If Hyperliquid has $5,000 and Binance has $1,000, the bot can only trade up to $2,000 total (limited by the smaller account).
+The bot opens equal positions on both exchanges. If Bybit has $5,000 and Binance has $1,000, the bot can only trade up to $2,000 total (limited by the smaller account).
 
 **Leverage Calculation:**
 - Default leverage: 2x
@@ -474,7 +320,7 @@ npm install
 
 This installs:
 - TypeScript compiler
-- Hyperliquid SDK
+- Bybit SDK
 - Binance Connector
 - Required type definitions
 
@@ -502,20 +348,28 @@ cp .env.example .env
 Open `.env` in a text editor and fill in your credentials:
 
 ```env
-# Hyperliquid Configuration
-HYPERLIQUID_PRIVATE_KEY=0x1234567890abcdef...  # Your Ethereum private key
+# Bybit API
+BYBIT_API_KEY=your_bybit_api_key
+BYBIT_API_SECRET=your_bybit_secret
 
-# Binance Configuration  
-BINANCE_API_KEY=abc123xyz456...                 # From Binance API Management
-BINANCE_SECRET_KEY=def789uvw012...              # From Binance API Management
+# Binance API
+BINANCE_API_KEY=your_binance_api_key
+BINANCE_SECRET_KEY=your_binance_secret_key
+
+# Trading config
+SYMBOL=BTCUSDT
+LEVERAGE=2
+MIN_FUNDING_SPREAD=0.0002
+POSITION_QTY=0.01
 ```
 
 **Finding Your Keys:**
 
-**Hyperliquid Private Key:**
-- MetaMask: Click account icon → Account Details → Export Private Key
-- Starts with `0x` followed by 64 characters
-- Example: `0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef`
+**Bybit API Keys:**
+- Login → Account → API Management
+- Copy both API Key and Secret Key
+- Example API Key: `xxxxxxxxxxxxxxxxxxxxxxxx`
+- Example Secret: `yyyyyyyyyyyyyyyyyyyyyyyy`
 
 **Binance API Keys:**
 - Login → Profile → API Management
@@ -538,15 +392,15 @@ cat .gitignore | grep .env
 **Never:**
 - Share your `.env` file
 - Commit `.env` to Git
-- Post private keys online
-- Email private keys
+- Post API keys online
+- Email API keys
 - Store keys in cloud drives unencrypted
 
 **Recommended:**
-- Use hardware wallet for Hyperliquid (Ledger/Trezor)
-- Enable IP restrictions on Binance API
-- Use separate wallet just for trading (not your main holdings)
-- Keep majority of funds in separate cold storage
+- Enable IP restrictions on both Bybit and Binance API keys
+- Enable 2FA on both exchange accounts
+- Store majority of funds in separate accounts or cold storage
+- Monitor API key activity regularly
 
 ---
 
@@ -566,7 +420,7 @@ You should see:
 🚀 Funding Rate Arbitrage Bot
 ============================================================
 Strategy: Delta-Neutral Funding Rate Arbitrage
-Exchanges: Hyperliquid (DEX) ↔ Binance (CEX)
+Exchanges: Bybit (CEX) ↔ Binance (CEX)
 Asset: BTC Perpetual Futures
 ============================================================
 
@@ -585,8 +439,8 @@ Asset: BTC Perpetual Futures
 ```
 
 **If you see errors:**
-- "HYPERLIQUID_PRIVATE_KEY not found" → Check your `.env` file
-- "Invalid private key" → Verify the key starts with `0x` and is 66 characters total
+- "BYBIT_API_KEY not found" → Check your `.env` file
+- "Invalid API key" → Verify both Bybit API keys are correct
 - "Binance API error" → Verify API keys are correct and Futures is enabled
 
 ### 2. Start Bot (Production)
@@ -653,12 +507,12 @@ Different exchanges can have different funding rates at the same time:
 
 | Exchange | Funding Rate | Direction |
 |----------|--------------|-----------|
-| Hyperliquid | +0.20% | Positive (longs pay) |
+| Bybit | +0.20% | Positive (longs pay) |
 | Binance | +0.05% | Positive (longs pay) |
 | **Spread** | **0.15%** | **Arbitrage opportunity!** |
 
 **Bot's Strategy:**
-1. Go **LONG on Hyperliquid** (receive +0.20% funding)
+1. Go **LONG on Bybit** (receive +0.20% funding)
 2. Go **SHORT on Binance** (pay only -0.05% funding)
 3. Net profit: 0.15% every 8 hours
 
@@ -739,15 +593,15 @@ kill <process_id>
 **"Could not find a declaration file for module '@binance/connector'"**
 - Solution: Type declarations are included. Run `npm install` again.
 
-**"HYPERLIQUID_PRIVATE_KEY not found in environment variables"**
+**"BYBIT_API_KEY not found in environment variables"**
 - Check `.env` file exists in project root
-- Verify the line starts with `HYPERLIQUID_PRIVATE_KEY=` (no spaces)
+- Verify the line starts with `BYBIT_API_KEY=` (no spaces)
 - Restart the bot after editing `.env`
 
-**"Invalid private key provided"**
-- Ensure private key starts with `0x`
-- Should be 66 characters total (0x + 64 hex characters)
-- No extra spaces or quotes
+**"Invalid API key or signature"**
+- Ensure both BYBIT_API_KEY and BYBIT_API_SECRET are correct
+- Copy-paste directly from Bybit API Management page
+- No extra spaces or quotes in `.env` file
 
 **"Binance API error: Invalid API key"**
 - Verify API key is correct (copy-paste from Binance)
@@ -843,7 +697,7 @@ A: Currently only BTC. Multi-pair support is a future enhancement.
 
 **Q: What are the fees?**
 A: 
-- Hyperliquid: ~0.02% maker, 0.05% taker
+- Bybit: ~0.02% maker, 0.05% taker
 - Binance: ~0.02% maker, 0.04% taker
 - Funding rates more than cover fees when spread is sufficient
 
@@ -852,25 +706,25 @@ A: Yes, use `--leverage <value>`. But higher leverage = higher liquidation risk.
 
 **Q: How do I withdraw profits?**
 A: Manually withdraw from each exchange:
-- Hyperliquid: Bridge USDC back to Arbitrum, then to CEX
-- Binance: Withdraw USDT directly
+- Bybit: Withdraw USDT directly from the exchange
+- Binance: Withdraw USDT directly from the exchange
 
 ---
 
 ## Security Best Practices
 
 ✅ **DO:**
-- Use separate wallet for trading (not your main holdings)
-- Enable IP restrictions on Binance API
-- Use hardware wallet for Hyperliquid (Ledger/Trezor)
 - Start with small amounts to test
+- Enable IP restrictions on both Bybit and Binance API keys
+- Enable 2FA on both exchange accounts
 - Keep `.env` file secure (chmod 600)
 - Monitor positions daily
+- Regularly check API key activity logs
 
 ❌ **DON'T:**
-- Share your private keys or API keys
-- Enable Withdrawals permission on Binance API
-- Use main wallet with all your funds
+- Share your API keys
+- Enable Withdrawals permission on API keys
+- Store all funds on exchanges - keep only trading capital
 - Run on untrusted servers
 - Commit `.env` to Git
 - Use public WiFi when managing bot

@@ -92,9 +92,16 @@ Create a `.env` file with:
 
 ```env
 # Required for live trading
-HYPERLIQUID_PRIVATE_KEY=your_hyperliquid_private_key
+BYBIT_API_KEY=your_bybit_api_key
+BYBIT_API_SECRET=your_bybit_api_secret
 BINANCE_API_KEY=your_binance_api_key
 BINANCE_SECRET_KEY=your_binance_secret_key
+
+# Trading config
+SYMBOL=BTCUSDT
+LEVERAGE=2
+MIN_FUNDING_SPREAD=0.0002
+POSITION_QTY=0.01
 ```
 
 ## Expected Performance Metrics
@@ -122,7 +129,7 @@ The bot logs detailed metrics during operation:
 
 ```
 [2026-01-08T05:41:31.565Z] Funding Rate Check
-  Hyperliquid: 0.0500%
+  Bybit: 0.0500%
   Binance:     0.0200%
   Spread:      0.0300%
   Threshold:   0.0200%
