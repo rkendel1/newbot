@@ -1,14 +1,13 @@
 {
   "name": "funding-rate-arb-bot",
-  "version": "2.0.0",
-  "description": "Funding Rate Arbitrage Bot for Bybit/Apex and Binance",
+  "version": "3.0.0",
+  "description": "Funding Rate Arbitrage Bot for Apex Omni and Coinbase Perpetual Futures - U.S. Legal",
   "main": "dist/auto_trading_bot.js",
   "scripts": {
     "build": "tsc",
     "start": "npm run auto-trade",
     "dev": "npm run auto-trade",
     "auto-trade": "ts-node src/auto_trading_bot.ts",
-    "auto-trade-apex": "ts-node src/auto_trading_bot_apex.ts",
     "test": "npm run build && node dist/test_funding_arb.js"
   },
   "keywords": [
@@ -17,13 +16,15 @@
     "trading",
     "bot",
     "typescript",
-    "bybit",
-    "binance",
+    "coinbase",
+    "coinbase-perps",
     "apex",
     "apex-omni",
     "starkex",
     "defi",
-    "decentralized"
+    "decentralized",
+    "us-legal",
+    "cftc"
   ],
   "author": "",
   "license": "ISC",
@@ -34,10 +35,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@binance/connector": "^3.0.0",
     "@types/ws": "^8.18.1",
+    "apexpro-connector-node": "^0.2.0-alpha.15",
     "axios": "^1.13.2",
-    "bybit-api": "^3.10.0",
     "dotenv": "^17.2.3",
     "ws": "^8.18.0"
   }

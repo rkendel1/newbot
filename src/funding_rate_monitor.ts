@@ -1,19 +1,28 @@
-import { RestClientV5, WebsocketClient } from 'bybit-api';
+/**
+ * Apex Omni ↔ Coinbase Funding Rate Monitor
+ * 
+ * This module monitors funding rates for Apex Omni exchange and Coinbase Perpetual Futures,
+ * detecting arbitrage opportunities between the two U.S.-legal exchanges.
+ * 
+ * Uses official Apex TypeScript connector for WebSocket connections.
+ */
+
 import EventEmitter from 'events';
-import WebSocket from 'ws';
 import * as dotenv from 'dotenv';
+import { ApexExchange, ApexConfig } from './apex_exchange';
+import { CoinbasePerps, CoinbasePerpsConfig } from './coinbase_perps';
 import { DEFAULTS, SpreadHistoryEntry } from './config';
 
 dotenv.config();
 
 export interface FundingRates {
-  bybitRate: number;
-  binRate: number;
+  apexRate: number;
+  coinbaseRate: number;
 }
 
 export interface Opportunity {
-  sideBybit: 'LONG' | 'SHORT';
-  sideBin: 'LONG' | 'SHORT';
+  sideApex: 'LONG' | 'SHORT';
+  sideCoinbase: 'LONG' | 'SHORT';
   spread: number;
   dynamicThreshold: number;
 }
@@ -21,14 +30,15 @@ export interface Opportunity {
 export const DEFAULT_FUNDING_THRESHOLD = DEFAULTS.MIN_FUNDING_SPREAD;
 
 export class FundingRateMonitor extends EventEmitter {
-  private bybitWS: WebsocketClient;
-  private bybitRest: RestClientV5;
-  private binanceWS: WebSocket | null = null;
+  private apexClient: ApexExchange;
+  private coinbaseClient: CoinbasePerps;
   private symbol: string;
+  private apexSymbol: string; // Apex uses different symbol format (e.g., BTC-USDC)
+  private coinbaseSymbol: string; // Coinbase uses different format (e.g., BTC-PERP)
   private spreadHistory: SpreadHistoryEntry[] = [];
   private useDynamicSpread: boolean = false;
-  private currentBybitRate: number = 0;
-  private currentBinanceRate: number = 0;
+  private currentApexRate: number = 0;
+  private currentCoinbaseRate: number = 0;
 
   constructor(useDynamicSpread: boolean = false) {
     super();
@@ -36,133 +46,260 @@ export class FundingRateMonitor extends EventEmitter {
     
     const symbol = process.env.SYMBOL || 'BTCUSDT';
     this.symbol = symbol;
-
-    const bybitApiKey = process.env.BYBIT_API_KEY;
-    const bybitApiSecret = process.env.BYBIT_API_SECRET;
     
-    if (!bybitApiKey || !bybitApiSecret) {
-      throw new Error('BYBIT_API_KEY and BYBIT_API_SECRET not found in environment variables');
+    // Convert Binance symbol format to Apex format
+    // BTCUSDT -> BTC-USDC (Apex typically uses USDC)
+    this.apexSymbol = this.convertToApexSymbol(symbol);
+    
+    // Convert to Coinbase format
+    // BTCUSDT -> BTC-PERP
+    this.coinbaseSymbol = this.convertToCoinbaseSymbol(symbol);
+
+    // Load Apex credentials from environment
+    const apexBaseUrl = process.env.APEX_BASE_URL || 'https://api.apex.exchange/v1';
+    const starkPrivateKey = process.env.APEX_STARK_PRIVATE_KEY;
+    const starkPublicKey = process.env.APEX_STARK_PUBLIC_KEY;
+    const accountId = process.env.APEX_ACCOUNT_ID;
+    const positionId = process.env.APEX_POSITION_ID;
+    
+    if (!starkPrivateKey || !starkPublicKey) {
+      throw new Error('APEX_STARK_PRIVATE_KEY and APEX_STARK_PUBLIC_KEY not found in environment variables');
+    }
+    
+    if (!accountId || !positionId) {
+      throw new Error('APEX_ACCOUNT_ID and APEX_POSITION_ID not found in environment variables');
     }
 
-    const binApiKey = process.env.BINANCE_API_KEY;
-    const binSecretKey = process.env.BINANCE_SECRET_KEY;
+    const coinbaseApiKey = process.env.COINBASE_API_KEY;
+    const coinbaseApiSecret = process.env.COINBASE_API_SECRET;
+    const coinbasePassphrase = process.env.COINBASE_API_PASSPHRASE;
     
-    if (!binApiKey || !binSecretKey) {
-      console.warn('⚠️  Warning: BINANCE_API_KEY or BINANCE_SECRET_KEY not set');
-      console.warn('Binance funding rates may not be available');
+    if (!coinbaseApiKey || !coinbaseApiSecret || !coinbasePassphrase) {
+      console.warn('⚠️  Warning: COINBASE_API_KEY, COINBASE_API_SECRET, or COINBASE_API_PASSPHRASE not set');
+      console.warn('Coinbase funding rates may not be available');
     }
 
-    // Initialize Bybit REST client
-    this.bybitRest = new RestClientV5({
-      key: bybitApiKey,
-      secret: bybitApiSecret,
-    });
+    // Initialize Apex client
+    const apexConfig: ApexConfig = {
+      baseUrl: apexBaseUrl,
+      starkPrivateKey,
+      starkPublicKey,
+      accountId,
+      positionId,
+    };
 
-    // Initialize Bybit WebSocket client
-    this.bybitWS = new WebsocketClient({
-      key: bybitApiKey,
-      secret: bybitApiSecret,
-      market: 'v5',
-    });
+    this.apexClient = new ApexExchange(apexConfig);
+
+    // Initialize Coinbase client
+    const coinbaseConfig: CoinbasePerpsConfig = {
+      apiKey: coinbaseApiKey || '',
+      apiSecret: coinbaseApiSecret || '',
+      passphrase: coinbasePassphrase || '',
+    };
+    this.coinbaseClient = new CoinbasePerps(coinbaseConfig);
+  }
+
+  /**
+   * Convert Binance symbol format to Coinbase format
+   * 
+   * Coinbase uses hyphenated format with -PERP suffix:
+   * - BTCUSDT -> BTC-PERP
+   * - ETHUSDT -> ETH-PERP
+   * 
+   * @param binanceSymbol - Symbol in Binance format (e.g., 'BTCUSDT')
+   * @returns Symbol in Coinbase format (e.g., 'BTC-PERP')
+   */
+  private convertToCoinbaseSymbol(binanceSymbol: string): string {
+    // Mapping table for known pairs
+    const symbolMap: Record<string, string> = {
+      'BTCUSDT': 'BTC-PERP',
+      'ETHUSDT': 'ETH-PERP',
+    };
+    
+    // Check if we have an explicit mapping
+    if (symbolMap[binanceSymbol]) {
+      return symbolMap[binanceSymbol];
+    }
+    
+    // Fallback: Try to extract base currency from USDT pair
+    if (binanceSymbol.endsWith('USDT')) {
+      const base = binanceSymbol.replace(/USDT$/, '');
+      console.warn(
+        `⚠️  No explicit mapping for ${binanceSymbol}, using fallback conversion: ${base}-PERP`
+      );
+      console.warn(
+        `   Verify this is correct on Coinbase. Add to symbolMap if needed.`
+      );
+      return `${base}-PERP`;
+    }
+    
+    // If it doesn't end with USDT, we can't convert it
+    throw new Error(
+      `Cannot convert symbol ${binanceSymbol} to Coinbase format. ` +
+      `Coinbase uses PERP suffix (e.g., BTC-PERP). ` +
+      `Please add ${binanceSymbol} to the symbol mapping table in apex_funding_monitor.ts`
+    );
+  }
+
+  /**
+   * Convert Binance symbol format to Apex format
+   * 
+   * Apex uses hyphenated format with USDC as quote currency:
+   * - BTCUSDT -> BTC-USDC
+   * - ETHUSDT -> ETH-USDC
+   * - SOLUSDT -> SOL-USDC
+   * 
+   * @param binanceSymbol - Symbol in Binance format (e.g., 'BTCUSDT')
+   * @returns Symbol in Apex format (e.g., 'BTC-USDC')
+   */
+  private convertToApexSymbol(binanceSymbol: string): string {
+    // Mapping table for known pairs
+    const symbolMap: Record<string, string> = {
+      'BTCUSDT': 'BTC-USDC',
+      'ETHUSDT': 'ETH-USDC',
+      'SOLUSDT': 'SOL-USDC',
+      'AVAXUSDT': 'AVAX-USDC',
+      'BNBUSDT': 'BNB-USDC',
+      'ADAUSDT': 'ADA-USDC',
+      'DOTUSDT': 'DOT-USDC',
+      'MATICUSDT': 'MATIC-USDC',
+    };
+    
+    // Check if we have an explicit mapping
+    if (symbolMap[binanceSymbol]) {
+      return symbolMap[binanceSymbol];
+    }
+    
+    // Fallback: Try to extract base currency from USDT pair
+    if (binanceSymbol.endsWith('USDT')) {
+      const base = binanceSymbol.replace(/USDT$/, '');
+      console.warn(
+        `⚠️  No explicit mapping for ${binanceSymbol}, using fallback conversion: ${base}-USDC`
+      );
+      console.warn(
+        `   Verify this is correct on Apex exchange. Add to symbolMap if needed.`
+      );
+      return `${base}-USDC`;
+    }
+    
+    // If it doesn't end with USDT, we can't convert it
+    throw new Error(
+      `Cannot convert symbol ${binanceSymbol} to Apex format. ` +
+      `Apex uses USDC pairs (e.g., BTC-USDC). ` +
+      `Please add ${binanceSymbol} to the symbol mapping table in apex_funding_monitor.ts`
+    );
   }
 
   start() {
-    this.subscribeBybit();
-    this.subscribeBinance();
-  }
-
-  private subscribeBybit() {
-    this.bybitWS.on('open', () => console.log('✅ Bybit WS connected.'));
+    console.log(`🔌 Starting Apex funding rate monitoring for ${this.apexSymbol}...`);
     
-    this.bybitWS.on('update', (data: any) => {
-      try {
-        if (data.topic && data.topic.includes('tickers')) {
-          const tickerData = data.data;
-          if (tickerData && tickerData.symbol === this.symbol) {
-            const rate = parseFloat(tickerData.fundingRate || '0');
-            this.currentBybitRate = rate;
-            this.emit('bybit_funding', rate);
-          }
-        }
-      } catch (error: any) {
-        console.error('Error processing Bybit update:', error.message);
-      }
-    });
-
-    this.bybitWS.on('error', (err: any) => {
-      console.error('Bybit WS error:', err);
-    });
-
-    // Subscribe to ticker updates which include funding rate
-    this.bybitWS.subscribe([`tickers.${this.symbol}`]);
-  }
-
-  private subscribeBinance() {
-    const wsUrl = `wss://fstream.binance.com/ws/${this.symbol.toLowerCase()}@markPrice`;
-    this.binanceWS = new WebSocket(wsUrl);
-
-    this.binanceWS.on('open', () => console.log('✅ Binance WS connected.'));
+    // Apex doesn't have WebSocket for funding rates in the provided spec
+    // We'll use polling instead
+    this.startApexPolling();
     
-    this.binanceWS.on('message', (msg: any) => {
-      try {
-        const data = JSON.parse(msg.toString());
-        if (data.r) { // 'r' is the funding rate field in mark price stream
-          const rate = parseFloat(data.r);
-          this.currentBinanceRate = rate;
-          this.emit('binance_funding', rate);
-        }
-      } catch (error: any) {
-        console.error('Error processing Binance message:', error.message);
-      }
-    });
-
-    this.binanceWS.on('error', (err: any) => {
-      console.error('Binance WS error:', err);
-    });
-
-    this.binanceWS.on('close', () => {
-      console.log('Binance WS closed, reconnecting...');
-      setTimeout(() => this.subscribeBinance(), 5000);
-    });
+    // Start Coinbase polling as well
+    this.subscribeCoinbase();
   }
 
-  async getFundingRates(): Promise<FundingRates> {
+  /**
+   * Poll Apex API for funding rates
+   * Since the provided spec doesn't mention WebSocket support for funding rates,
+   * we'll poll the REST API periodically
+   */
+  private startApexPolling() {
+    const pollInterval = 60000; // Poll every 60 seconds
+    
+    console.log(`✅ Apex polling started (every ${pollInterval / 1000}s)`);
+    
+    // Initial fetch
+    this.fetchApexFundingRate();
+    
+    // Set up periodic polling
+    setInterval(() => {
+      this.fetchApexFundingRate();
+    }, pollInterval);
+  }
+
+  /**
+   * Fetch funding rate from Apex REST API
+   */
+  private async fetchApexFundingRate() {
     try {
-      // If we have recent WebSocket data, use it
-      if (this.currentBybitRate !== 0 && this.currentBinanceRate !== 0) {
-        return { bybitRate: this.currentBybitRate, binRate: this.currentBinanceRate };
-      }
-
-      // Otherwise fetch via REST API as fallback
-      const bybitResponse = await this.bybitRest.getTickers({
-        category: 'linear',
-        symbol: this.symbol,
-      });
-      
-      const bybitRate = bybitResponse.result?.list?.[0]?.fundingRate 
-        ? parseFloat(bybitResponse.result.list[0].fundingRate) 
-        : 0;
-
-      // For Binance, we rely on WebSocket data or need to make REST call
-      // Using current value from WebSocket if available
-      const binRate = this.currentBinanceRate;
-
-      return { bybitRate, binRate };
+      const rate = await this.apexClient.getFundingRate(this.apexSymbol);
+      this.currentApexRate = rate;
+      this.emit('apex_funding', rate);
     } catch (error: any) {
-      console.error('Error fetching funding rates:', error.message);
-      return { bybitRate: 0, binRate: 0 };
+      console.error('Error fetching Apex funding rate:', error.message);
     }
   }
 
+  /**
+   * Poll Coinbase API for funding rates
+   * Coinbase doesn't provide WebSocket for funding rates, so we poll periodically
+   */
+  private subscribeCoinbase() {
+    const pollInterval = 60000; // Poll every 60 seconds
+    
+    console.log(`✅ Coinbase polling started (every ${pollInterval / 1000}s)`);
+    
+    // Initial fetch
+    this.fetchCoinbaseFundingRate();
+    
+    // Set up periodic polling
+    setInterval(() => {
+      this.fetchCoinbaseFundingRate();
+    }, pollInterval);
+  }
+
+  /**
+   * Fetch funding rate from Coinbase REST API
+   */
+  private async fetchCoinbaseFundingRate() {
+    try {
+      const rate = await this.coinbaseClient.getFundingRate(this.coinbaseSymbol);
+      this.currentCoinbaseRate = rate;
+      this.emit('coinbase_funding', rate);
+    } catch (error: any) {
+      console.error('Error fetching Coinbase funding rate:', error.message);
+    }
+  }
+
+  /**
+   * Get current funding rates for both Apex and Coinbase
+   */
+  async getFundingRates(): Promise<FundingRates> {
+    try {
+      // If we have recent data from polling, use it
+      if (this.currentApexRate !== 0 && this.currentCoinbaseRate !== 0) {
+        return { apexRate: this.currentApexRate, coinbaseRate: this.currentCoinbaseRate };
+      }
+
+      // Otherwise fetch from REST APIs as fallback
+      const apexRate = await this.apexClient.getFundingRate(this.apexSymbol);
+      const coinbaseRate = await this.coinbaseClient.getFundingRate(this.coinbaseSymbol);
+
+      return { apexRate, coinbaseRate };
+    } catch (error: any) {
+      console.error('Error fetching funding rates:', error.message);
+      return { apexRate: 0, coinbaseRate: 0 };
+    }
+  }
+
+  /**
+   * Detect arbitrage opportunity between Apex and Coinbase
+   * 
+   * @param threshold - Minimum funding spread to consider an opportunity
+   * @returns Opportunity object or null if no opportunity exists
+   */
   async detectOpportunity(threshold: number = DEFAULT_FUNDING_THRESHOLD): Promise<Opportunity | null> {
     try {
-      const { bybitRate, binRate } = await this.getFundingRates();
+      const { apexRate, coinbaseRate } = await this.getFundingRates();
       
-      if (bybitRate === 0 || binRate === 0) {
+      if (apexRate === 0 || coinbaseRate === 0) {
         return null; // Invalid rates
       }
 
-      const spread = bybitRate - binRate;
+      const spread = apexRate - coinbaseRate;
       
       // Store spread in history for volatility calculation
       this.addSpreadToHistory(spread);
@@ -173,18 +310,18 @@ export class FundingRateMonitor extends EventEmitter {
         : threshold;
       
       if (Math.abs(spread) > dynamicThreshold) {
-        // If Bybit rate > Bin rate, long Bybit (collect positive funding), short Bin
+        // If Apex rate > Coinbase rate, long Apex (collect positive funding), short Coinbase
         if (spread > 0) {
           return { 
-            sideBybit: 'LONG', 
-            sideBin: 'SHORT',
+            sideApex: 'LONG', 
+            sideCoinbase: 'SHORT',
             spread,
             dynamicThreshold
           };
         } else {
           return { 
-            sideBybit: 'SHORT', 
-            sideBin: 'LONG',
+            sideApex: 'SHORT', 
+            sideCoinbase: 'LONG',
             spread,
             dynamicThreshold
           };
@@ -254,12 +391,16 @@ export class FundingRateMonitor extends EventEmitter {
   }
 
   /**
+   * Get the Apex client instance for direct API access
+   */
+  public getApexClient(): ApexExchange {
+    return this.apexClient;
+  }
+
+  /**
    * Clean up connections
    */
   public async close(): Promise<void> {
-    if (this.binanceWS) {
-      this.binanceWS.close();
-    }
-    // Bybit WS client will be closed automatically
+    // Nothing to close for polling-based connections
   }
 }
