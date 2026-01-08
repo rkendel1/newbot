@@ -14,6 +14,8 @@ export interface Opportunity {
   sideBin: 'LONG' | 'SHORT';
 }
 
+export const DEFAULT_FUNDING_THRESHOLD = 0.001; // 0.1% minimum spread
+
 export class FundingRateMonitor {
   private hlClient: Hyperliquid;
   private binanceClient: any;
@@ -63,7 +65,7 @@ export class FundingRateMonitor {
     }
   }
 
-  async detectOpportunity(threshold: number = 0.001): Promise<Opportunity | null> {
+  async detectOpportunity(threshold: number = DEFAULT_FUNDING_THRESHOLD): Promise<Opportunity | null> {
     try {
       const { hlRate, binRate } = await this.getFundingRates();
       
