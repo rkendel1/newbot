@@ -91,7 +91,10 @@ class AutoTradingBot {
 
     // Set up periodic checks
     const checkInterval = DEFAULTS.FUNDING_CHECK_INTERVAL;
-    console.log(`⏰ Monitoring active - checking every ${checkInterval / 60000} minutes\n`);
+    const intervalDisplay = checkInterval >= 60000 
+      ? `${checkInterval / 60000} minutes` 
+      : `${checkInterval / 1000} seconds`;
+    console.log(`⏰ Monitoring active - checking every ${intervalDisplay}\n`);
     
     setInterval(async () => {
       if (!this.isRunning) return;

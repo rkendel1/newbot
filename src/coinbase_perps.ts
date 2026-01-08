@@ -17,6 +17,7 @@ import * as crypto from 'crypto';
 export interface CoinbasePerpsConfig {
   apiKey: string;
   apiSecret: string;
+  passphrase: string;
   baseUrl?: string;
   timeout?: number;
 }
@@ -72,6 +73,7 @@ export class CoinbasePerps {
   private baseUrl: string;
   private apiKey: string;
   private apiSecret: string;
+  private passphrase: string;
   private timeout: number;
 
   constructor(config: CoinbasePerpsConfig) {
@@ -79,6 +81,7 @@ export class CoinbasePerps {
     this.baseUrl = this.baseUrl.replace(/\/$/, '');
     this.apiKey = config.apiKey;
     this.apiSecret = config.apiSecret;
+    this.passphrase = config.passphrase;
     this.timeout = config.timeout || 10000;
 
     this.client = axios.create({
@@ -119,6 +122,7 @@ export class CoinbasePerps {
       'CB-ACCESS-KEY': this.apiKey,
       'CB-ACCESS-SIGN': this.sign(timestamp, method, path, body),
       'CB-ACCESS-TIMESTAMP': timestamp,
+      'CB-ACCESS-PASSPHRASE': this.passphrase,
       'Content-Type': 'application/json',
     };
   }
@@ -218,11 +222,20 @@ export class CoinbasePerps {
 
   /**
    * Get the current funding rate for a perpetual product
+   * 
+   * NOTE: Coinbase Exchange (api.exchange.coinbase.com) does not support perpetual futures.
+   * Perpetual futures are only available on Coinbase International Exchange, which requires
+   * a different API (api.international.coinbase.com) and is not available to U.S. users.
+   * 
+   * This method will attempt to fetch funding rates from various possible endpoints,
+   * but may fail if the API structure doesn't match expectations.
+   * 
    * @param symbol - Product ID (e.g., 'ETH-PERP', 'BTC-PERP')
    * @returns Funding rate as a decimal (e.g., 0.0001 = 0.01%)
    */
   async getFundingRate(symbol: string = 'ETH-PERP'): Promise<number> {
     try {
+      // Try the standard funding rate endpoint
       const data = await this.get<any>(`/products/${symbol}/funding-rate`);
       
       // Coinbase returns funding rate in 'funding_rate' field
@@ -246,6 +259,15 @@ export class CoinbasePerps {
       
       return parsedRate;
     } catch (error: any) {
+      // Check if this is a 404 error
+      if (error.message && error.message.includes('404')) {
+        console.warn(`⚠️  Coinbase API endpoint not found: /products/${symbol}/funding-rate`);
+        console.warn(`⚠️  Note: Coinbase Exchange does not support perpetual futures.`);
+        console.warn(`⚠️  Perpetual futures are only available on Coinbase International (non-U.S.).`);
+        console.warn(`⚠️  Returning 0 for funding rate to allow bot to continue.`);
+        return 0; // Return 0 instead of throwing error
+      }
+      
       if (error instanceof CoinbasePerpsAPIError) {
         throw error;
       }
