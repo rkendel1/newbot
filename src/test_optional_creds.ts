@@ -40,12 +40,21 @@ async function testOptionalCredentials() {
     
     console.log('Attempting to fetch funding rate (public endpoint)...');
     const rate = await client.getFundingRate('BTC-PERP');
-    console.log(`✅ Funding rate fetched: ${(rate * 100).toFixed(4)}% (or 0 if API unavailable)`);
+    
+    // Validate rate is a number (could be 0 if API unavailable)
+    if (typeof rate === 'number' && !isNaN(rate)) {
+      console.log(`✅ Funding rate fetched: ${(rate * 100).toFixed(4)}% (or 0 if API unavailable)`);
+    } else {
+      console.log(`⚠️  Unexpected rate value: ${rate}`);
+    }
   } catch (error: any) {
     // This might fail due to network issues or API being unavailable
     // but not due to missing credentials
     console.log(`⚠️  Note: ${error.message}`);
-    if (error.message.includes('credentials') || error.message.includes('apiKey') || error.message.includes('passphrase')) {
+    
+    // Check if error is related to missing credentials
+    const credentialRelatedErrors = /credentials?|apikey|api.?key|secret|passphrase|authentication|unauthorized/i;
+    if (credentialRelatedErrors.test(error.message)) {
       console.log('❌ FAIL: Should not require credentials for public endpoint');
     } else {
       console.log('✅ PASS: Failed for reasons other than credentials (network/API availability)');
