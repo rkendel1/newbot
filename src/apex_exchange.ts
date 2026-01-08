@@ -16,10 +16,10 @@ import * as crypto from 'crypto';
 
 export interface ApexConfig {
   baseUrl: string;
-  starkPrivateKey: string;
-  starkPublicKey: string;
-  accountId: string;
-  positionId: string;
+  starkPrivateKey?: string;
+  starkPublicKey?: string;
+  accountId?: string;
+  positionId?: string;
   timeout?: number;
 }
 
@@ -77,10 +77,10 @@ export class ApexAPIError extends Error {
 export class ApexExchange {
   private client: AxiosInstance;
   private baseUrl: string;
-  private starkPrivateKey: string;
-  private starkPublicKey: string;
-  private accountId: string;
-  private positionId: string;
+  private starkPrivateKey?: string;
+  private starkPublicKey?: string;
+  private accountId?: string;
+  private positionId?: string;
   private timeout: number;
 
   constructor(config: ApexConfig) {
@@ -177,6 +177,10 @@ export class ApexExchange {
    * @returns Signature string (currently HMAC-SHA256, needs to be StarkEx signature)
    */
   private signOrder(order: Record<string, any>): string {
+    if (!this.starkPrivateKey) {
+      throw new ApexAPIError('Apex StarkEx private key is required for signing orders. Please set APEX_STARK_PRIVATE_KEY.');
+    }
+    
     // TODO: Replace with actual StarkEx signing implementation
     // This is a placeholder that generates a deterministic signature
     // for testing and development purposes only
@@ -325,6 +329,13 @@ export class ApexExchange {
    * Fetch account balances for this StarkEx account
    */
   async getBalance(): Promise<Record<string, any>> {
+    if (!this.accountId) {
+      throw new ApexAPIError(
+        'Apex account ID is required for fetching balances. ' +
+        'Please set APEX_ACCOUNT_ID.'
+      );
+    }
+    
     return this.get<Record<string, any>>('/balances', {
       accountId: this.accountId,
     });
@@ -335,6 +346,13 @@ export class ApexExchange {
    * @param symbol - Optional symbol to filter positions
    */
   async getPositions(symbol?: string): Promise<ApexPosition[]> {
+    if (!this.accountId) {
+      throw new ApexAPIError(
+        'Apex account ID is required for fetching positions. ' +
+        'Please set APEX_ACCOUNT_ID.'
+      );
+    }
+    
     const params: Record<string, any> = {
       accountId: this.accountId,
     };
@@ -382,6 +400,13 @@ export class ApexExchange {
     timeInForce?: string;
     clientId?: string;
   }): Promise<ApexOrderResponse> {
+    if (!this.starkPrivateKey || !this.starkPublicKey || !this.accountId || !this.positionId) {
+      throw new ApexAPIError(
+        'Apex credentials are required for placing orders. ' +
+        'Please set APEX_STARK_PRIVATE_KEY, APEX_STARK_PUBLIC_KEY, APEX_ACCOUNT_ID, and APEX_POSITION_ID.'
+      );
+    }
+    
     const {
       symbol,
       side,
@@ -403,8 +428,8 @@ export class ApexExchange {
       price: String(price),
       type: orderType.toUpperCase() as 'LIMIT' | 'MARKET',
       timeInForce: timeInForce.toUpperCase(),
-      accountId: this.accountId,
-      positionId: this.positionId,
+      accountId: this.accountId!,
+      positionId: this.positionId!,
       nonce,
       expiration,
       reduceOnly,
@@ -429,6 +454,13 @@ export class ApexExchange {
    * @param orderId - Order ID to cancel
    */
   async cancelOrder(orderId: string): Promise<Record<string, any>> {
+    if (!this.starkPrivateKey || !this.starkPublicKey || !this.accountId) {
+      throw new ApexAPIError(
+        'Apex credentials are required for canceling orders. ' +
+        'Please set APEX_STARK_PRIVATE_KEY, APEX_STARK_PUBLIC_KEY, and APEX_ACCOUNT_ID.'
+      );
+    }
+    
     const payload: Record<string, any> = {
       orderId,
       accountId: this.accountId,
@@ -446,6 +478,13 @@ export class ApexExchange {
    * @param symbol - Optional symbol to cancel orders for
    */
   async cancelAllOrders(symbol?: string): Promise<Record<string, any>> {
+    if (!this.starkPrivateKey || !this.starkPublicKey || !this.accountId) {
+      throw new ApexAPIError(
+        'Apex credentials are required for canceling orders. ' +
+        'Please set APEX_STARK_PRIVATE_KEY, APEX_STARK_PUBLIC_KEY, and APEX_ACCOUNT_ID.'
+      );
+    }
+    
     const payload: Record<string, any> = {
       accountId: this.accountId,
       nonce: this.getTimestamp(),
@@ -466,6 +505,13 @@ export class ApexExchange {
    * @param symbol - Optional symbol to filter orders
    */
   async getOpenOrders(symbol?: string): Promise<Record<string, any>[]> {
+    if (!this.accountId) {
+      throw new ApexAPIError(
+        'Apex account ID is required for fetching orders. ' +
+        'Please set APEX_ACCOUNT_ID.'
+      );
+    }
+    
     const params: Record<string, any> = {
       accountId: this.accountId,
     };

@@ -33,7 +33,7 @@ export class FundingRateMonitor extends EventEmitter {
   private apexClient: ApexExchange;
   private coinbaseClient: CoinbasePerps;
   private symbol: string;
-  private apexSymbol: string; // Apex uses different symbol format (e.g., BTC-USDC)
+  private apexSymbol: string; // Apex uses different symbol format (e.g., BTC-USDT)
   private coinbaseSymbol: string; // Coinbase uses different format (e.g., BTC-PERP)
   private spreadHistory: SpreadHistoryEntry[] = [];
   private useDynamicSpread: boolean = false;
@@ -48,7 +48,7 @@ export class FundingRateMonitor extends EventEmitter {
     this.symbol = symbol;
     
     // Convert Binance symbol format to Apex format
-    // BTCUSDT -> BTC-USDC (Apex typically uses USDC)
+    // BTCUSDT -> BTC-USDT (Apex uses USDT)
     this.apexSymbol = this.convertToApexSymbol(symbol);
     
     // Convert to Coinbase format
@@ -63,11 +63,14 @@ export class FundingRateMonitor extends EventEmitter {
     const positionId = process.env.APEX_POSITION_ID;
     
     if (!starkPrivateKey || !starkPublicKey) {
-      throw new Error('APEX_STARK_PRIVATE_KEY and APEX_STARK_PUBLIC_KEY not found in environment variables');
+      console.warn('⚠️  Notice: APEX_STARK_PRIVATE_KEY and/or APEX_STARK_PUBLIC_KEY not set');
+      console.warn('   Public endpoints (like funding rates) will work without credentials.');
+      console.warn('   Trading functionality will require valid API credentials.');
     }
     
     if (!accountId || !positionId) {
-      throw new Error('APEX_ACCOUNT_ID and APEX_POSITION_ID not found in environment variables');
+      console.warn('⚠️  Notice: APEX_ACCOUNT_ID and/or APEX_POSITION_ID not set');
+      console.warn('   Trading functionality will require these credentials.');
     }
 
     const coinbaseApiKey = process.env.COINBASE_API_KEY;
@@ -145,13 +148,13 @@ export class FundingRateMonitor extends EventEmitter {
   /**
    * Convert Binance symbol format to Apex format
    * 
-   * Apex uses hyphenated format with USDC as quote currency:
-   * - BTCUSDT -> BTC-USDC
-   * - ETHUSDT -> ETH-USDC
-   * - SOLUSDT -> SOL-USDC
+   * Apex uses hyphenated format with USDT as quote currency:
+   * - BTCUSDT -> BTC-USDT
+   * - ETHUSDT -> ETH-USDT
+   * - SOLUSDT -> SOL-USDT
    * 
    * @param binanceSymbol - Symbol in Binance format (e.g., 'BTCUSDT')
-   * @returns Symbol in Apex format (e.g., 'BTC-USDC')
+   * @returns Symbol in Apex format (e.g., 'BTC-USDT')
    */
   private convertToApexSymbol(binanceSymbol: string): string {
     // Mapping table for known pairs
