@@ -104,14 +104,14 @@ export function parseCliArgs(args: string[]): StrategyConfig {
 export interface Position {
   id: string;
   symbol: string;
-  bybitSide: 'LONG' | 'SHORT';
+  apexSide: 'LONG' | 'SHORT';
   coinbaseSide: 'LONG' | 'SHORT';
   notional: number;
   leverage: number;
   entryTime: Date;
-  bybitEntryPrice: number;
+  apexEntryPrice: number;
   coinbaseEntryPrice: number;
-  bybitFundingRate: number;
+  apexFundingRate: number;
   coinbaseFundingRate: number;
   spreadAtEntry: number;
   status: 'active' | 'closed';
