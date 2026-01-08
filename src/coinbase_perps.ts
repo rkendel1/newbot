@@ -15,9 +15,9 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import * as crypto from 'crypto';
 
 export interface CoinbasePerpsConfig {
-  apiKey: string;
-  apiSecret: string;
-  passphrase: string;
+  apiKey?: string;
+  apiSecret?: string;
+  passphrase?: string;
   baseUrl?: string;
   timeout?: number;
 }
@@ -72,9 +72,9 @@ export class CoinbasePerps {
   private client: AxiosInstance;
   private publicClient: AxiosInstance;
   private baseUrl: string;
-  private apiKey: string;
-  private apiSecret: string;
-  private passphrase: string;
+  private apiKey?: string;
+  private apiSecret?: string;
+  private passphrase?: string;
   private timeout: number;
 
   constructor(config: CoinbasePerpsConfig) {
@@ -109,6 +109,9 @@ export class CoinbasePerps {
    * @returns Base64-encoded signature
    */
   private sign(timestamp: string, method: string, requestPath: string, body: string = ''): string {
+    if (!this.apiSecret) {
+      throw new CoinbasePerpsAPIError('API secret is required for authenticated requests');
+    }
     const message = timestamp + method + requestPath + body;
     const hmacKey = Buffer.from(this.apiSecret, 'base64');
     const signature = crypto.createHmac('sha256', hmacKey).update(message).digest('base64');
@@ -123,6 +126,12 @@ export class CoinbasePerps {
    * @returns Headers object with authentication
    */
   private getHeaders(method: string, path: string, body: string = ''): Record<string, string> {
+    if (!this.apiKey || !this.apiSecret || !this.passphrase) {
+      throw new CoinbasePerpsAPIError(
+        'API credentials (apiKey, apiSecret, passphrase) are required for authenticated requests. ' +
+        'For public data only, credentials are not needed.'
+      );
+    }
     const timestamp = (Date.now() / 1000).toFixed(3);
     return {
       'CB-ACCESS-KEY': this.apiKey,
