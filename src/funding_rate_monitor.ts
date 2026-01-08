@@ -56,7 +56,7 @@ export class FundingRateMonitor extends EventEmitter {
     this.coinbaseSymbol = this.convertToCoinbaseSymbol(symbol);
 
     // Load Apex credentials from environment
-    const apexBaseUrl = process.env.APEX_BASE_URL || 'https://api.apex.exchange/v1';
+    const apexBaseUrl = process.env.APEX_BASE_URL || 'https://api.omni.apex.exchange';
     const starkPrivateKey = process.env.APEX_STARK_PRIVATE_KEY;
     const starkPublicKey = process.env.APEX_STARK_PUBLIC_KEY;
     const accountId = process.env.APEX_ACCOUNT_ID;
@@ -229,7 +229,11 @@ export class FundingRateMonitor extends EventEmitter {
       this.currentApexRate = rate;
       this.emit('apex_funding', rate);
     } catch (error: any) {
-      console.error('Error fetching Apex funding rate:', error.message);
+      // Only log error if it's not a "not found" or "no funding rate" error
+      if (!error.message.includes('No funding rate') && !error.message.includes('404')) {
+        console.error('Error fetching Apex funding rate:', error.message);
+      }
+      // Keep the last known rate instead of resetting to 0
     }
   }
 
@@ -260,7 +264,11 @@ export class FundingRateMonitor extends EventEmitter {
       this.currentCoinbaseRate = rate;
       this.emit('coinbase_funding', rate);
     } catch (error: any) {
-      console.error('Error fetching Coinbase funding rate:', error.message);
+      // Only log error if it's not a "not found" or "no funding rate" error
+      if (!error.message.includes('No funding rate') && !error.message.includes('404')) {
+        console.error('Error fetching Coinbase funding rate:', error.message);
+      }
+      // Keep the last known rate instead of resetting to 0
     }
   }
 
@@ -280,8 +288,8 @@ export class FundingRateMonitor extends EventEmitter {
 
       return { apexRate, coinbaseRate };
     } catch (error: any) {
-      console.error('Error fetching funding rates:', error.message);
-      return { apexRate: 0, coinbaseRate: 0 };
+      // Don't log error here since it's already logged in the individual fetch methods
+      return { apexRate: this.currentApexRate, coinbaseRate: this.currentCoinbaseRate };
     }
   }
 

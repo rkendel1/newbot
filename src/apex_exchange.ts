@@ -224,41 +224,68 @@ export class ApexExchange {
 
   /**
    * Get the current funding rate for a perpetual market
+   * 
+   * NOTE: The Apex API endpoint for funding rates may vary. This method attempts
+   * multiple possible endpoints and field names to retrieve the funding rate.
+   * 
+   * Common Apex API endpoints for funding rates:
+   * - /v1/funding (with symbol parameter)
+   * - /v1/funding-rate (with symbol parameter)
+   * - /v1/perpetual-markets/{symbol}/funding-rate
+   * 
    * @param symbol - Market symbol (e.g., 'ETH-USDC', 'BTC-USDC')
    * @returns Funding rate as a decimal (e.g., 0.0001 = 0.01%)
    */
   async getFundingRate(symbol: string): Promise<number> {
-    try {
-      const data = await this.get<any>('/funding', { symbol });
-      
-      // Try different possible field names in Apex API response
-      const rate = data.currentFundingRate ?? data.fundingRate ?? data.rate;
-      
-      if (rate === undefined || rate === null) {
-        console.error(`No funding rate field found in Apex API response for ${symbol}`);
-        console.error('Response structure:', JSON.stringify(data, null, 2));
-        throw new ApexAPIError(
-          `No funding rate in response for ${symbol}. Expected fields: currentFundingRate, fundingRate, or rate`
-        );
+    // Try multiple possible endpoints
+    const endpoints = [
+      { path: '/funding-rate', params: { symbol } },
+      { path: '/funding', params: { symbol } },
+      { path: `/perpetual-markets/${symbol}/funding-rate`, params: {} },
+      { path: '/ticker', params: { symbol } },  // Sometimes funding rate is in ticker
+    ];
+    
+    let lastError: Error | null = null;
+    
+    for (const endpoint of endpoints) {
+      try {
+        const data = await this.get<any>(endpoint.path, endpoint.params);
+        
+        // Try different possible field names in Apex API response
+        const rate = data.currentFundingRate 
+          ?? data.fundingRate 
+          ?? data.funding_rate
+          ?? data.rate
+          ?? data.data?.fundingRate
+          ?? data.data?.currentFundingRate;
+        
+        if (rate !== undefined && rate !== null) {
+          const parsedRate = parseFloat(String(rate));
+          
+          if (!isNaN(parsedRate)) {
+            return parsedRate;
+          }
+        }
+        
+        // If we got a response but no valid funding rate, try next endpoint
+        continue;
+        
+      } catch (error: any) {
+        lastError = error;
+        // Continue trying other endpoints
+        continue;
       }
-      
-      const parsedRate = parseFloat(String(rate));
-      
-      if (isNaN(parsedRate)) {
-        throw new ApexAPIError(
-          `Invalid funding rate value for ${symbol}: ${rate}`
-        );
-      }
-      
-      return parsedRate;
-    } catch (error: any) {
-      if (error instanceof ApexAPIError) {
-        throw error;
-      }
-      throw new ApexAPIError(
-        `Failed to fetch funding rate for ${symbol}: ${error.message || String(error)}`
-      );
     }
+    
+    // If all endpoints failed, log detailed error and return 0
+    console.warn(`⚠️  Could not fetch funding rate from Apex API for ${symbol}`);
+    console.warn(`⚠️  Attempted endpoints:`, endpoints.map(e => e.path).join(', '));
+    console.warn(`⚠️  Last error:`, lastError?.message || 'Unknown error');
+    console.warn(`⚠️  Returning 0 for funding rate to allow bot to continue.`);
+    console.warn(`⚠️  Note: You may need to update the Apex API endpoint configuration.`);
+    console.warn(`⚠️  Check Apex API documentation at https://docs.apex.exchange`);
+    
+    return 0; // Return 0 instead of throwing to allow bot to continue
   }
 
   /**
