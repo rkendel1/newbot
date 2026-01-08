@@ -75,8 +75,9 @@ export class FundingRateMonitor extends EventEmitter {
     const coinbasePassphrase = process.env.COINBASE_API_PASSPHRASE;
     
     if (!coinbaseApiKey || !coinbaseApiSecret || !coinbasePassphrase) {
-      console.warn('⚠️  Warning: COINBASE_API_KEY, COINBASE_API_SECRET, or COINBASE_API_PASSPHRASE not set');
-      console.warn('Coinbase funding rates may not be available');
+      console.warn('⚠️  Notice: COINBASE_API_KEY, COINBASE_API_SECRET, or COINBASE_API_PASSPHRASE not set');
+      console.warn('   Public endpoints (like funding rates) will work without credentials.');
+      console.warn('   Trading functionality will require valid API credentials.');
     }
 
     // Initialize Apex client
