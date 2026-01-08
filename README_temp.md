@@ -2,14 +2,14 @@
 
 A fully automated trading bot that exploits funding rate differences between perpetual futures markets to generate consistent returns through delta-neutral arbitrage.
 
-## 🆕 New: Apex Omni + Coinbase Perpetual Futures Support
+## 🆕 New: Apex Omni Support
 
-**You can now choose between two trading pairs:**
+**You can now choose between two Exchange A options:**
 
-- **Bybit (CEX) ↔ Coinbase Perpetual Futures (U.S.-Regulated CEX)** - Traditional CEX with KYC
-- **Apex Omni (DEX) ↔ Coinbase Perpetual Futures (U.S.-Regulated CEX)** - DEX on StarkEx L2, no KYC required
+- **Bybit** (Centralized Exchange) - Traditional CEX with KYC
+- **Apex Omni** (Decentralized Exchange) - DEX on StarkEx L2, no KYC required
 
-Both work seamlessly with **Coinbase Perpetual Futures** as Exchange B, providing **U.S.-legal** perpetual futures trading.
+Both work seamlessly with **Binance** as Exchange B.
 
 ➡️ **[See Apex Omni Setup Guide](./APEX_SETUP.md)** for detailed instructions on switching to the decentralized option.
 
@@ -36,7 +36,7 @@ This creates a market-neutral position that profits from the rate difference whi
 
 ```
 Bybit Funding Rate: +0.15% per 8 hours
-Binance Funding Rate:     +0.05% per 8 hours
+Coinbase Funding Rate:     +0.05% per 8 hours
 Spread:                   0.10% (exceeds 0.02% threshold)
 
 Action:
@@ -66,7 +66,7 @@ Risk: Market-neutral (hedged)
 2. [Account Setup](#account-setup)
    - [Bybit Setup](#1-bybit-account-setup)
    - [Apex Omni Setup](#apex-omni-alternative) (Alternative to Bybit)
-   - [Coinbase Perpetual Futures Setup](#2-binance-account-setup)
+   - [Binance Setup](#2-coinbase-account-setup)
 3. [Installation](#installation)
 4. [Configuration](#configuration)
 5. [Running the Bot](#running-the-bot)
@@ -89,7 +89,7 @@ Risk: Market-neutral (hedged)
 
 **For Coinbase Perpetual Futures (CEX):**
 - ❌ No crypto wallet needed
-- ✅ Just a Coinbase account with API keys
+- ✅ Just a Binance account with API keys
 - ✅ Funds stored on Coinbase (centralized)
 
 ### Required Knowledge
@@ -107,17 +107,17 @@ Risk: Market-neutral (hedged)
 
 **Minimum to Start:**
 - **Bybit**: $500 USDC
-- **Coinbase Perpetual Futures**: $500 USDT  
+- **Binance**: $500 USDT  
 - **Total**: $1,000 minimum
 
 **Recommended for Better Performance:**
 - **Bybit**: $2,500 USDC
-- **Coinbase Perpetual Futures**: $2,500 USDT
+- **Binance**: $2,500 USDT
 - **Total**: $5,000
 
 **Optimal for Serious Trading:**
 - **Bybit**: $10,000+ USDC
-- **Coinbase Perpetual Futures**: $10,000+ USDT
+- **Binance**: $10,000+ USDT
 - **Total**: $20,000+
 
 > **Why these amounts?** 
@@ -249,80 +249,83 @@ The Apex setup guide covers:
 
 ### 2. Coinbase Perpetual Futures Account Setup
 
-Coinbase Perpetual Futures is a U.S.-regulated, CFTC-compliant exchange offering perpetual futures contracts.
+Binance is a centralized exchange. You need to create an account and enable futures trading.
 
 #### Step 1: Create Coinbase Account
 
 1. Go to https://www.coinbase.com
 2. Sign up with email
-3. Complete KYC verification (required for perpetual futures trading)
+3. Complete KYC verification (required for futures trading)
    - Provide ID (passport/driver's license)
    - Take selfie
    - Verification usually takes 15 minutes to 24 hours
 
 #### Step 2: Enable Perpetual Futures Trading
 
-1. Log into Coinbase
-2. Navigate to **Advanced Trade → Perpetual Futures**
+1. Log into Binance
+2. Navigate to **Derivatives → USDⓈ-M Futures**
 3. Complete Futures Trading Quiz (if prompted)
-4. Accept Terms of Service for Perpetual Futures
+4. Accept Terms of Service for Futures
 
 #### Step 3: Create API Keys
 
 **IMPORTANT: Follow these steps exactly for security**
 
-1. Go to **Settings → API**
-2. Click **New API Key**
-3. Label it: "Funding Arb Bot"
-4. Complete 2FA verification
-5. **Save all credentials immediately:**
+1. Go to **Profile Icon → API Management**
+2. Click **Create API**
+3. Choose **System Generated** (not editable)
+4. Label it: "Funding Arb Bot"
+5. Complete 2FA verification
+6. **Save both keys immediately:**
    - API Key: `xxxxxxxxxxxxx`
-   - API Secret: `xxxxxxxxxxxxx` (base64-encoded)
-   - API Passphrase: `xxxxxxxxxxxxx`
-   - ⚠️ Secret and passphrase are only shown ONCE - save them now!
+   - Secret Key: `xxxxxxxxxxxxx`
+   - ⚠️ Secret key is only shown ONCE - save it now!
 
-6. **Configure API Permissions:**
-   - ✅ **Enable View** (to read account data)
-   - ✅ **Enable Trade** (for perpetual futures)
-   - ❌ Disable Transfer (for security)
+7. **Configure API Restrictions:**
+   - ✅ **Enable Reading**
+   - ✅ **Enable Futures** 
+   - ❌ Disable Spot & Margin
+   - ❌ Disable Withdrawals (for security)
    
-7. **IP Whitelist (Optional but Recommended):**
+8. **IP Access (Optional but Recommended):**
+   - Select "Restrict access to trusted IPs"
    - Add your server/home IP address
    - This prevents API key use from other locations
 
-8. Click **Create API Key**
+9. Click **Save**
 
 #### Step 4: Fund Your Coinbase Perpetual Futures Account
 
-**Deposit USD or USDC:**
-1. Navigate to **Portfolio → Deposit**
-2. Select **USD** or **USDC**
-3. For USD: Link bank account and deposit
-4. For USDC: Select network and deposit from wallet
-5. Wait for confirmations
+**Deposit USDT:**
+1. Navigate to **Wallet → Fiat and Spot**
+2. Click **Deposit**
+3. Select **USDT**
+4. Choose network (TRC20 for lowest fees, ERC20 for Ethereum)
+5. Copy your deposit address
+6. Send USDT from your exchange/wallet
+7. Wait for confirmations (5-10 minutes)
 
-**Transfer to Perpetual Futures:**
-1. In your portfolio, locate your USD or USDC balance
-2. Funds are automatically available for perpetual futures trading
-3. No manual transfer needed
+**Transfer to Futures Wallet:**
+1. Go to **Wallet → Futures**
+2. Click **Transfer**
+3. From: Spot Wallet → To: USDⓈ-M Futures
+4. Amount: Enter USDT amount
+5. Confirm transfer
 
 **Required Amounts:**
-- **Minimum**: $500 USD/USDC (allows ~$1,000 position with 2x leverage)
-- **Recommended**: $2,500 USD/USDC (allows $5,000 positions)
-- **Optimal**: $5,000+ USD/USDC (allows full $10,000 positions)
+- **Minimum**: $500 USDT (allows ~$1,000 position with 2x leverage)
+- **Recommended**: $2,500 USDT (allows $5,000 positions)
+- **Optimal**: $5,000+ USDT (allows full $10,000 positions)
 
 #### Step 5: Verify API Setup
 
 Test your API keys work:
 ```bash
-curl -X GET "https://api.exchange.coinbase.com/accounts" \
-  -H "CB-ACCESS-KEY: your_api_key_here" \
-  -H "CB-ACCESS-SIGN: your_signature" \
-  -H "CB-ACCESS-TIMESTAMP: timestamp" \
-  -H "CB-ACCESS-PASSPHRASE: your_passphrase"
+curl -X GET "https://fapi.coinbase.com/fapi/v2/balance" \
+  -H "X-MBX-APIKEY: your_api_key_here"
 ```
 
-Should return your account balances.
+Should return your futures account balance.
 
 ---
 
@@ -398,10 +401,9 @@ Open `.env` in a text editor and fill in your credentials:
 BYBIT_API_KEY=your_bybit_api_key
 BYBIT_API_SECRET=your_bybit_secret
 
-# Coinbase Perpetual Futures API
+# Coinbase API
 COINBASE_API_KEY=your_coinbase_api_key
-COINBASE_API_SECRET=your_coinbase_secret_base64
-COINBASE_API_PASSPHRASE=your_coinbase_passphrase
+COINBASE_SECRET_KEY=your_coinbase_secret_key
 
 # Trading config
 SYMBOL=BTCUSDT
@@ -418,12 +420,11 @@ POSITION_QTY=0.01
 - Example API Key: `xxxxxxxxxxxxxxxxxxxxxxxx`
 - Example Secret: `yyyyyyyyyyyyyyyyyyyyyyyy`
 
-**Coinbase Perpetual Futures API Keys:**
-- Login → Settings → API
-- Copy API Key, Secret (base64-encoded), and Passphrase
+**Coinbase API Keys:**
+- Login → Profile → API Management
+- Copy both API Key and Secret Key
 - Example API Key: `vwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdef`
-- Example Secret: `abc1234567890def1234567890ghi1234567890jkl1234567890mno==` (base64)
-- Example Passphrase: `mypassphrase123`
+- Example Secret: `abc1234567890def1234567890ghi1234567890jkl1234567890mno`
 
 ### 3. Secure Your Keys
 
@@ -466,7 +467,7 @@ The bot supports two configurations:
 npm run auto-trade
 ```
 
-**Option B: Apex + Coinbase Perpetual Futures**
+**Option B: Apex + Binance**
 ```bash
 # In .env:
 USE_APEX=true
@@ -538,7 +539,7 @@ Asset: BTC Perpetual Futures
 - "BYBIT_API_KEY not found" → Check your `.env` file (for Bybit mode)
 - "APEX_STARK_PRIVATE_KEY not found" → Check your `.env` file (for Apex mode)
 - "Invalid API key" → Verify API keys are correct
-- "Binance API error" → Verify Binance API keys are correct and Futures is enabled
+- "Coinbase API error" → Verify Coinbase API keys are correct and Futures is enabled
 
 ### 3. Start Bot (Production)
 
@@ -610,7 +611,7 @@ Different exchanges can have different funding rates at the same time:
 
 **Bot's Strategy:**
 1. Go **LONG on Bybit** (receive +0.20% funding)
-2. Go **SHORT on Binance** (pay only -0.05% funding)
+2. Go **SHORT on Coinbase** (pay only -0.05% funding)
 3. Net profit: 0.15% every 8 hours
 
 **Delta-Neutral:**
@@ -687,7 +688,7 @@ kill <process_id>
 
 ### Common Issues
 
-**"Could not find a declaration file for module '@binance/connector'"**
+**"Could not find a declaration file for module '@coinbase/connector'"**
 - Solution: Type declarations are included. Run `npm install` again.
 
 **"BYBIT_API_KEY not found in environment variables"**
@@ -700,7 +701,7 @@ kill <process_id>
 - Copy-paste directly from Bybit API Management page
 - No extra spaces or quotes in `.env` file
 
-**"Binance API error: Invalid API key"**
+**"Coinbase API error: Invalid API key"**
 - Verify API key is correct (copy-paste from Binance)
 - Check API restrictions: Futures must be enabled
 - Verify IP restrictions (if set) include your current IP
@@ -750,7 +751,7 @@ funding-rate-arb-bot/
 │   ├── funding_rate_monitor.ts   # Funding rate fetching
 │   ├── config.ts                 # Configuration defaults
 │   ├── test_funding_arb.ts       # Test suite
-│   └── binance__connector.d.ts   # Type declarations
+│   └── coinbase__connector.d.ts   # Type declarations
 ├── .env                          # Your credentials (DO NOT COMMIT)
 ├── .env.example                  # Template for .env
 ├── package.json                  # Dependencies
@@ -795,7 +796,7 @@ A: Currently only BTC. Multi-pair support is a future enhancement.
 **Q: What are the fees?**
 A: 
 - Bybit: ~0.02% maker, 0.05% taker
-- Coinbase: ~0.02% maker, 0.04% taker
+- Binance: ~0.02% maker, 0.04% taker
 - Funding rates more than cover fees when spread is sufficient
 
 **Q: Can I use different leverage?**
@@ -804,7 +805,7 @@ A: Yes, use `--leverage <value>`. But higher leverage = higher liquidation risk.
 **Q: How do I withdraw profits?**
 A: Manually withdraw from each exchange:
 - Bybit: Withdraw USDT directly from the exchange
-- Coinbase: Withdraw USDT directly from the exchange
+- Binance: Withdraw USDT directly from the exchange
 
 ---
 
