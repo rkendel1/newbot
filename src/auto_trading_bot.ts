@@ -119,10 +119,7 @@ class AutoTradingBot {
                     console.log('─'.repeat(60));
                 }
             } else {
-                const threshold = this.useDynamicSpread && opportunity 
-                    ? opportunity.dynamicThreshold 
-                    : this.minFundingSpread;
-                console.log(`  Threshold:   ${(threshold * 100).toFixed(4)}%`);
+                console.log(`  Threshold:   ${(this.minFundingSpread * 100).toFixed(4)}%`);
                 console.log('  Status:      No opportunity - spread below threshold');
                 console.log('─'.repeat(60));
             }

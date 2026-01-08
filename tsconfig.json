@@ -13,9 +13,15 @@
     "moduleResolution": "node",
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "typeRoots": ["./node_modules/@types", "./src"]
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/auto_trading_bot.ts",
+    "src/funding_rate_monitor.ts",
+    "src/config.ts",
+    "src/@binance-connector.d.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }
 
